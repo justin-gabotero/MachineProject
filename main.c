@@ -59,7 +59,7 @@ int getUser(String user, StringLong pass, User *out) {
            &out->creationDate.day, &roleNum);
     // decrypt password from file
 
-    xorEncrypt(pass, decryptedPass); // inverse to decrypt
+    xorEncrypt(encryptedPass, decryptedPass); // inverse to decrypt
 
     // compare if input username and password match
     if (strcmp(out->user, user) == 0 && strcmp(decryptedPass, pass) == 0) {
