@@ -27,23 +27,6 @@ typedef struct {
 /// File Handling for user.txt
 ///
 
-int countFileLines(FILE *fp) {
-  int i, lineCount = 0;
-
-  if (fp == NULL) {
-    printf("Could not read file.\n");
-    return 1;
-  }
-
-  for (i = getc(fp); i != EOF; i = getc(fp)) {
-    if (i == '\n') {
-      lineCount++;
-    }
-  }
-
-  return lineCount;
-}
-
 int getUser(String user, StringLong pass, User *out) {
   StringBuffer buf;
   FILE *userFile;
@@ -52,8 +35,9 @@ int getUser(String user, StringLong pass, User *out) {
   StringLong encryptedPass, decryptedPass;
 
   userFile = fopen("user.txt", "r");
-  lineCount = countFileLines(userFile);
 
+  // user data format stored in user.txt, one user per line
+  // username:encrypted_password:YYYY-MM-DD:role
   while (fgets(buf, sizeof(buf), userFile)) {
     sscanf(buf, "%[^:]:%[^:]:%d-%d-%d:%d", out->user, encryptedPass,
            &out->creationDate.year, &out->creationDate.month,
