@@ -1,7 +1,11 @@
 // Project Title: Animo FoodConnect
+// Authors: Justin Gabotero, Gabriel Pangilinan
 // CCPROG2 Machine Project
 
 #include <stdio.h>
+#include <string.h>
+
+#define XOR_KEY 0x67
 
 typedef char String[32];
 typedef char StringLong[100];
@@ -15,13 +19,24 @@ typedef struct {
   int day;
 } Date;
 
-// TODO: separate user handling into another file.
 typedef struct {
   String user;
   StringLong password;
   Date creationDate;
   Role role;
 } User;
+
+///
+/// Encryption Handling
+///
+
+void xorEncrypt(char *input, char *output) {
+  int len = strlen(input);
+  for (int i = 0; i < len; i++) {
+    output[i] = input[i] ^ XOR_KEY;
+  }
+  output[len] = '\0'; // end string
+};
 
 ///
 /// File Handling for user.txt
@@ -42,20 +57,27 @@ int getUser(String user, StringLong pass, User *out) {
     sscanf(buf, "%[^:]:%[^:]:%d-%d-%d:%d", out->user, encryptedPass,
            &out->creationDate.year, &out->creationDate.month,
            &out->creationDate.day, &roleNum);
+    // decrypt password from file
+
+    xorEncrypt(pass, decryptedPass); // inverse to decrypt
+
+    // compare if input username and password match
+    if (strcmp(out->user, user) == 0 && strcmp(decryptedPass, pass) == 0) {
+      out->role = (Role)roleNum;
+
+      fclose(userFile);
+      return roleNum; // returns 0 = supplier, 1 = receiver
+    }
   }
 
-  // decrypt password from file
-
-  // compare if input username and password match
-  // return 1; if success
-
   fclose(userFile);
+  printf("Username and Password does not match!\n");
 
-  return 0;
+  return -1; // not found
 }
 
 //
-//  User Account Hadling (Register / Login)
+//  User Account Handling (Register / Login)
 //
 
 int registerUser() {
