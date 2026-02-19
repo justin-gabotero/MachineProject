@@ -1,5 +1,5 @@
 // Project Title: Animo FoodConnect
-// Authors: Justin Gabotero, Gabriel Pangilinan
+// Authors: Justin Gabotero, Gabriel Panganiban
 // CCPROG2 Machine Project
 
 #include <stdio.h>
