@@ -44,15 +44,26 @@ int countFileLines(FILE *fp) {
   return lineCount;
 }
 
-int userList() {
+int getUser(String user, StringLong pass, User *out) {
   StringBuffer buf;
   FILE *userFile;
-  int i, lineCount = 0;
+  int i, roleNum, lineCount = 0;
+
+  StringLong encryptedPass, decryptedPass;
 
   userFile = fopen("user.txt", "r");
   lineCount = countFileLines(userFile);
 
-  // TODO: IMPL
+  while (fgets(buf, sizeof(buf), userFile)) {
+    sscanf(buf, "%[^:]:%[^:]:%d-%d-%d:%d", out->user, encryptedPass,
+           &out->creationDate.year, &out->creationDate.month,
+           &out->creationDate.day, &roleNum);
+  }
+
+  // decrypt password from file
+
+  // compare if input username and password match
+  // return 1; if success
 
   fclose(userFile);
 
