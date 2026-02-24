@@ -8,8 +8,7 @@
 #define XOR_KEY 0x67
 
 typedef char String[32];
-typedef char StringLong[100];
-typedef char StringBuffer[255];
+typedef char StringLong[128];
 
 typedef enum { SUPPLIER, RECEIVER } Role;
 
@@ -27,6 +26,17 @@ typedef struct {
 } User;
 
 ///
+/// Function Prototypes
+///
+
+void xorEncrypt(char *input, char *output);
+int getUser(String user, StringLong pass, User *out);
+int editUser(User *user, User *in);
+int writeUser(User *user);
+int registerUser();
+User *loginUser(StringLong user, StringLong pass);
+
+///
 /// Encryption Handling
 ///
 
@@ -36,16 +46,19 @@ void xorEncrypt(char *input, char *output) {
     output[i] = input[i] ^ XOR_KEY;
   }
   output[len] = '\0'; // end string
-};
+}
 
 ///
 /// File Handling for user.txt
 ///
 
 int getUser(String user, StringLong pass, User *out) {
-  StringBuffer buf;
+  StringLong buf;
   FILE *userFile;
-  int i, roleNum, lineCount = 0;
+
+  String parsedUser;
+  Date parsedDate;
+  Role parsedRole;
 
   StringLong encryptedPass, decryptedPass;
 
@@ -54,19 +67,21 @@ int getUser(String user, StringLong pass, User *out) {
   // user data format stored in user.txt, one user per line
   // username:encrypted_password:YYYY-MM-DD:role
   while (fgets(buf, sizeof(buf), userFile)) {
-    sscanf(buf, "%[^:]:%[^:]:%d-%d-%d:%d", out->user, encryptedPass,
-           &out->creationDate.year, &out->creationDate.month,
-           &out->creationDate.day, &roleNum);
-    // decrypt password from file
+    sscanf(buf, "%[^:]:%[^:]:%d-%d-%d:%d", parsedUser, encryptedPass,
+           &parsedDate.year, &parsedDate.month, &parsedDate.day,
+           (int *)&parsedRole);
 
+    // decrypt password from file
     xorEncrypt(encryptedPass, decryptedPass); // inverse to decrypt
 
     // compare if input username and password match
-    if (strcmp(out->user, user) == 0 && strcmp(decryptedPass, pass) == 0) {
-      out->role = (Role)roleNum;
+    if (strcmp(parsedUser, user) == 0 && strcmp(decryptedPass, pass) == 0) {
+      strcpy(out->user, parsedUser);
+      out->creationDate = parsedDate;
+      out->role = parsedRole;
 
       fclose(userFile);
-      return roleNum; // returns 0 = supplier, 1 = receiver
+      return (int)out->role; // returns 0 = supplier, 1 = receiver
     }
   }
 
@@ -76,12 +91,35 @@ int getUser(String user, StringLong pass, User *out) {
   return -1; // not found
 }
 
+int editUser(User *user, User *in) {
+  return 0; // TODO: IMPL
+}
+
+int writeUser(User *user) {
+  FILE *userFile;
+
+  userFile = fopen("user.txt", "a");
+  return 0;
+}
+
 //
 //  User Account Handling (Register / Login)
 //
 
 int registerUser() {
   return 0; // TODO: IMPL
+}
+
+User *loginUser(String user, StringLong pass) {
+  User *logged;
+  int role = getUser(user, pass, logged);
+  if (role > -1) {
+    return logged;
+  } else {
+    printf("Could not login, username and password does not match!\n");
+  }
+
+  return 0; //
 }
 
 ///
