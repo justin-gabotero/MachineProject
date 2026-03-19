@@ -145,7 +145,7 @@ static int readRole(Role *outRole) {
 }
 
 static int readCreationDate(Date *outDate) {
-  char buf[32];
+  char buf[32]; // TODO: use time.h instead of user input parsing for dates
   int status;
 
   while (1) {
@@ -241,7 +241,7 @@ int registerPrompt(void) {
     printf("Registration failed.\n");
     return -1;
   }
-  
+
   return 0;
 }
 
