@@ -128,7 +128,8 @@ int getUser(String user, StringLong pass, User *out) {
       }
       decryptedPass[xorLen] = '\0';
     } else {
-      // backward compatibility for existing raw XOR entries.  (NOTE: not sure if i should keep this later on.)
+      // backward compatibility for existing raw XOR entries.  (NOTE: not sure
+      // if i should keep this later on.)
       xorEncrypt(encryptedPass, decryptedPass);
     }
 
@@ -161,7 +162,8 @@ int usernameExists(String user) {
   // each line starts with username before the first ':'
   while (fgets(buf, sizeof(buf), userFile)) {
     // compare parsed username with requested username
-    if (sscanf(buf, "%31[^:]", parsedUser) == 1 && strcmp(parsedUser, user) == 0) {
+    if (sscanf(buf, "%31[^:]", parsedUser) == 1 &&
+        strcmp(parsedUser, user) == 0) {
       fclose(userFile);
       return 1;
     }
