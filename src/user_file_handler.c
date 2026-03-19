@@ -83,7 +83,7 @@ static int hexDecode(const char *input, unsigned char *output, int outputSize,
   return 0;
 }
 
-void xorEncrypt(char *input, char *output) {
+static void xorEncrypt(char *input, char *output) {
   int len = (int)strlen(input);
   xorBytes(input, len, (unsigned char *)output);
   output[len] = '\0';
