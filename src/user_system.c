@@ -321,7 +321,11 @@ int resetUserPassword(User *user, StringLong newPass) {
   User updatedUser;
 
   if (user != NULL && strlen(user->user) > 0 && strlen(newPass) > 0) {
-    memset(&updatedUser, 0, sizeof(updatedUser));
+    updatedUser.user[0] = '\0';
+    updatedUser.password[0] = '\0';
+    updatedUser.creationDate.year = 0;
+    updatedUser.creationDate.month = 0;
+    updatedUser.creationDate.day = 0;
     strcpy(updatedUser.user, user->user);
     strcpy(updatedUser.password, newPass);
     updatedUser.role = (Role)-1;
