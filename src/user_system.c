@@ -266,13 +266,15 @@ int registerPrompt(void) {
 
 User *loginUser(String user, StringLong pass) {
   static User logged;
+  User *result = NULL;
   int role = getUser(user, pass, &logged);
+
   if (role > -1) {
     strcpy(logged.password, pass);
-    return &logged;
+    result = &logged;
   }
 
-  return NULL;
+  return result;
 }
 
 int recoverPasswordPrompt(void) {
