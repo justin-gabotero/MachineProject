@@ -203,61 +203,65 @@ int registerUser(User *user) {
 int registerPrompt(void) {
   User newUser;
   StringLong confirm;
-  int status;
+  int status = 0, input;
 
   printf("\n=== Register ===\n");
   printf("Username: ");
-  status = readLine(newUser.user, sizeof(newUser.user));
-  if (status == -2) {
+  input = readLine(newUser.user, sizeof(newUser.user));
+  if (input == -2) {
     printf("Registration cancelled.\n");
-    return -1;
+    status = -1;
   }
 
   if (strlen(newUser.user) == 0) {
     printf("Username cannot be empty.\n");
-    return -1;
+    status = -1;
   }
 
   if (usernameExists(newUser.user)) {
     printf("Username already exists.\n");
-    return -1;
+    status = -1;
   }
 
   printf("Password: ");
-  status = readLine(newUser.password, sizeof(newUser.password));
-  if (status == -2) {
+  input = readLine(newUser.password, sizeof(newUser.password));
+  if (input == -2) {
     printf("Registration cancelled.\n");
-    return -1;
+    status = -1;
   }
 
   printf("Confirm Password: ");
-  status = readLine(confirm, sizeof(confirm));
-  if (status == -2) {
+  input = readLine(confirm, sizeof(confirm));
+  if (input == -2) {
     printf("Registration cancelled.\n");
-    return -1;
+    status = -1;
   }
 
   if (strcmp(newUser.password, confirm) != 0) {
     printf("Passwords do not match.\n");
-    return -1;
+    status = -1;
   }
 
   if (readRole(&newUser.role) != 0) {
     printf("Registration cancelled.\n");
-    return -1;
+    status = -1;
   }
 
   if (readCreationDate(&newUser.creationDate) != 0) {
     printf("Registration cancelled.\n");
-    return -1;
+    status = -1;
   }
 
   if (registerUser(&newUser) != 0) {
     printf("Registration failed.\n");
-    return -1;
+    status = -1;
   }
 
-  return 0;
+  if (status == 0) {
+    printf("Registration successful.\n");
+  }
+
+  return status;
 }
 
 User *loginUser(String user, StringLong pass) {
@@ -271,26 +275,44 @@ User *loginUser(String user, StringLong pass) {
   return NULL;
 }
 
-User *recoverPasswordPrompt(void) {
+int recoverPasswordPrompt(void) {
   String user;
-  User *found = NULL;
-  int status;
+  StringLong newPass;
+  User tempUser;
+  int status, input;
 
   printf("\n=== Recover Password ===\n");
   printf("Username: ");
-  status = readLine(user, sizeof(user));
-  if (status == -2) {
+  input = readLine(user, sizeof(user));
+  if (input == -2) {
     printf("Password recovery cancelled.\n");
-    return NULL;
+    status = 1;
   }
 
-  found = loginUser(user, ""); // attempt to find user by username only
-  if (found != NULL) {
-    return found;
+  if (usernameExists(user)) {
+    printf("Username exists.\n");
+    printf("Enter new password: ");
+    input = readLine(newPass, sizeof(newPass));
+    if (input == -2) {
+      printf("Password recovery cancelled.\n");
+      status = 1;
+    }
+
+    if (getUser(user, "", &tempUser) == 0) {
+      strcpy(tempUser.password, newPass);
+      if (editUser(&tempUser, &tempUser) == 0) {
+        printf("Password updated successfully.\n");
+        status = 0;
+      }
+    }
+
+    if (status != 0) {
+      printf("Failed to update password.\n");
+    }
   }
 
   printf("Username not found.\n");
-  return NULL;
+  return status;
 }
 
 User *loginPrompt(void) {

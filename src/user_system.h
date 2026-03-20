@@ -24,7 +24,7 @@ int registerUser(User *user);
 int registerPrompt(void);
 User *loginUser(String user, StringLong pass);
 User *loginPrompt(void);
-User *recoverPasswordPrompt(void);
+int recoverPasswordPrompt(void);
 int readLine(char *buf, int size);
 
 #endif
