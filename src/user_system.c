@@ -203,58 +203,73 @@ int registerUser(User *user) {
 int registerPrompt(void) {
   User newUser;
   StringLong confirm;
-  int status = 0, input;
+  int status = 0;
+  int input = 0;
+
+  newUser.user[0] = '\0';
+  newUser.password[0] = '\0';
+  confirm[0] = '\0';
 
   printf("\n=== Register ===\n");
-  printf("Username: ");
-  input = readLine(newUser.user, sizeof(newUser.user));
-  if (input == -2) {
-    printf("Registration cancelled.\n");
-    status = -1;
+
+  if (status == 0) {
+    printf("Username: ");
+    input = readLine(newUser.user, sizeof(newUser.user));
+    if (input == -2) {
+      printf("Registration cancelled.\n");
+      status = -1;
+    } else if (input != 0 || strlen(newUser.user) == 0) {
+      printf("Username cannot be empty.\n");
+      status = -1;
+    } else if (usernameExists(newUser.user)) {
+      printf("Username already exists.\n");
+      status = -1;
+    }
   }
 
-  if (strlen(newUser.user) == 0) {
-    printf("Username cannot be empty.\n");
-    status = -1;
+  if (status == 0) {
+    printf("Password: ");
+    input = readLine(newUser.password, sizeof(newUser.password));
+    if (input == -2) {
+      printf("Registration cancelled.\n");
+      status = -1;
+    } else if (input != 0 || strlen(newUser.password) == 0) {
+      printf("Password cannot be empty.\n");
+      status = -1;
+    }
   }
 
-  if (usernameExists(newUser.user)) {
-    printf("Username already exists.\n");
-    status = -1;
+  if (status == 0) {
+    printf("Confirm Password: ");
+    input = readLine(confirm, sizeof(confirm));
+    if (input == -2) {
+      printf("Registration cancelled.\n");
+      status = -1;
+    } else if (input != 0 || strcmp(newUser.password, confirm) != 0) {
+      printf("Passwords do not match.\n");
+      status = -1;
+    }
   }
 
-  printf("Password: ");
-  input = readLine(newUser.password, sizeof(newUser.password));
-  if (input == -2) {
-    printf("Registration cancelled.\n");
-    status = -1;
+  if (status == 0) {
+    if (readRole(&newUser.role) != 0) {
+      printf("Registration cancelled.\n");
+      status = -1;
+    }
   }
 
-  printf("Confirm Password: ");
-  input = readLine(confirm, sizeof(confirm));
-  if (input == -2) {
-    printf("Registration cancelled.\n");
-    status = -1;
+  if (status == 0) {
+    if (readCreationDate(&newUser.creationDate) != 0) {
+      printf("Registration cancelled.\n");
+      status = -1;
+    }
   }
 
-  if (strcmp(newUser.password, confirm) != 0) {
-    printf("Passwords do not match.\n");
-    status = -1;
-  }
-
-  if (readRole(&newUser.role) != 0) {
-    printf("Registration cancelled.\n");
-    status = -1;
-  }
-
-  if (readCreationDate(&newUser.creationDate) != 0) {
-    printf("Registration cancelled.\n");
-    status = -1;
-  }
-
-  if (registerUser(&newUser) != 0) {
-    printf("Registration failed.\n");
-    status = -1;
+  if (status == 0) {
+    if (registerUser(&newUser) != 0) {
+      printf("Registration failed.\n");
+      status = -1;
+    }
   }
 
   if (status == 0) {
