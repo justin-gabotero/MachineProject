@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 static int readCsiUKey(int *keyCode, int *modifier) {
   int ch = getchar();
@@ -145,115 +146,213 @@ static int readRole(Role *outRole) {
 }
 
 static int readCreationDate(Date *outDate) {
-  char buf[32]; // TODO: use time.h instead of user input parsing for dates
-  int status;
+  int status = -1;
+  time_t now = 0;
+  struct tm *localNow = NULL;
 
-  while (1) {
-    printf("Creation Date (YYYY-MM-DD): ");
-    status = readLine(buf, sizeof(buf));
-
-    if (status == -2) {
-      return -1;
+  if (outDate != NULL) {
+    now = time(NULL);
+    if (now != (time_t)-1) {
+      localNow = localtime(&now);
+      if (localNow != NULL) {
+        outDate->year = localNow->tm_year + 1900;
+        outDate->month = localNow->tm_mon + 1;
+        outDate->day = localNow->tm_mday;
+        status = 0;
+      }
     }
-    if (status != 0) {
-      continue;
-    }
-
-    // basic date-format validation
-    if (sscanf(buf, "%d-%d-%d", &outDate->year, &outDate->month,
-               &outDate->day) == 3 &&
-        outDate->month >= 1 && outDate->month <= 12 && outDate->day >= 1 &&
-        outDate->day <= 31) {
-      return 0;
-    }
-
-    printf("Invalid date format.\n");
   }
+
+  return status;
 }
 
 int editUser(User *user, User *in) {
-  (void)user;
-  (void)in;
-  return 0;
+  int status = 0;
+
+  if (user == NULL || in == NULL) {
+    status = -1;
+  }
+
+  if (status == 0 && (strlen(in->user) == 0 || strlen(in->password) == 0)) {
+    status = -1;
+  }
+
+  if (status == 0 && strcmp(user->user, in->user) != 0 &&
+      usernameExists(in->user)) {
+    status = -2;
+  }
+
+  if (status == 0) {
+    strcpy(user->user, in->user);
+    strcpy(user->password, in->password);
+    user->creationDate = in->creationDate;
+    user->role = in->role;
+  }
+
+  return status;
 }
 
 int registerUser(User *user) {
+  int status = -1;
   if (usernameExists(user->user)) {
-    return -1;
+    return status;
   }
-
-  return writeUser(user);
+  status = writeUser(user);
+  return status;
 }
 
 int registerPrompt(void) {
   User newUser;
   StringLong confirm;
-  int status;
+  int status = 0;
+  int input = 0;
+
+  newUser.user[0] = '\0';
+  newUser.password[0] = '\0';
+  confirm[0] = '\0';
 
   printf("\n=== Register ===\n");
-  printf("Username: ");
-  status = readLine(newUser.user, sizeof(newUser.user));
-  if (status == -2) {
-    printf("Registration cancelled.\n");
-    return -1;
-  }
 
-  if (strlen(newUser.user) == 0) {
-    printf("Username cannot be empty.\n");
-    return -1;
-  }
+  do {
+    printf("Username: ");
+    input = readLine(newUser.user, sizeof(newUser.user));
+    if (input == -2) {
+      printf("Registration cancelled.\n");
+      status = -1;
+      break;
+    }
+    if (input != 0 || strlen(newUser.user) == 0) {
+      printf("Username cannot be empty.\n");
+      status = -1;
+      break;
+    }
+    if (usernameExists(newUser.user)) {
+      printf("Username already exists.\n");
+      status = -1;
+      break;
+    }
 
-  if (usernameExists(newUser.user)) {
-    printf("Username already exists.\n");
-    return -1;
-  }
+    printf("Password: ");
+    input = readLine(newUser.password, sizeof(newUser.password));
+    if (input == -2) {
+      printf("Registration cancelled.\n");
+      status = -1;
+      break;
+    }
+    if (input != 0 || strlen(newUser.password) == 0) {
+      printf("Password cannot be empty.\n");
+      status = -1;
+      break;
+    }
 
-  printf("Password: ");
-  status = readLine(newUser.password, sizeof(newUser.password));
-  if (status == -2) {
-    printf("Registration cancelled.\n");
-    return -1;
-  }
+    printf("Confirm Password: ");
+    input = readLine(confirm, sizeof(confirm));
+    if (input == -2) {
+      printf("Registration cancelled.\n");
+      status = -1;
+      break;
+    }
+    if (input != 0 || strcmp(newUser.password, confirm) != 0) {
+      printf("Passwords do not match.\n");
+      status = -1;
+      break;
+    }
 
-  printf("Confirm Password: ");
-  status = readLine(confirm, sizeof(confirm));
-  if (status == -2) {
-    printf("Registration cancelled.\n");
-    return -1;
-  }
+    if (readRole(&newUser.role) != 0) {
+      printf("Registration cancelled.\n");
+      status = -1;
+      break;
+    }
 
-  if (strcmp(newUser.password, confirm) != 0) {
-    printf("Passwords do not match.\n");
-    return -1;
-  }
+    if (readCreationDate(&newUser.creationDate) != 0) {
+      printf("Registration cancelled.\n");
+      status = -1;
+      break;
+    }
 
-  if (readRole(&newUser.role) != 0) {
-    printf("Registration cancelled.\n");
-    return -1;
-  }
+    if (registerUser(&newUser) != 0) {
+      printf("Registration failed.\n");
+      status = -1;
+      break;
+    }
 
-  if (readCreationDate(&newUser.creationDate) != 0) {
-    printf("Registration cancelled.\n");
-    return -1;
-  }
+    printf("Registration successful.\n");
+  } while (0);
 
-  if (registerUser(&newUser) != 0) {
-    printf("Registration failed.\n");
-    return -1;
-  }
-
-  return 0;
+  return status;
 }
 
 User *loginUser(String user, StringLong pass) {
   static User logged;
+  User *result = NULL;
   int role = getUser(user, pass, &logged);
+
   if (role > -1) {
     strcpy(logged.password, pass);
-    return &logged;
+    result = &logged;
   }
 
-  return NULL;
+  return result;
+}
+
+int recoverPasswordPrompt(void) {
+  String user;
+  StringLong newPass;
+  User tempUser;
+  int status = -1, input;
+
+  printf("\n=== Recover Password ===\n");
+  printf("Username: ");
+  input = readLine(user, sizeof(user));
+  if (input == -2) {
+    printf("Password recovery cancelled.\n");
+    status = 1;
+  }
+
+  if (status == -1 && usernameExists(user)) {
+    printf("Username exists.\n");
+    printf("Enter new password: ");
+    input = readLine(newPass, sizeof(newPass));
+    if (input == -2) {
+      printf("Password recovery cancelled.\n");
+      status = 1;
+    }
+
+    if (status == -1) {
+      strcpy(tempUser.user, user);
+      if (resetUserPassword(&tempUser, newPass) == 0) {
+        printf("Password updated successfully.\n");
+        status = 0;
+      }
+    }
+
+    if (status != 0) {
+      printf("Failed to update password.\n");
+    }
+  } else if (status == -1) {
+    printf("Username not found.\n");
+  }
+
+  return status;
+}
+
+int resetUserPassword(User *user, StringLong newPass) {
+  int status = -1;
+  User updatedUser;
+
+  if (user != NULL && strlen(user->user) > 0 && strlen(newPass) > 0) {
+    updatedUser.user[0] = '\0';
+    updatedUser.password[0] = '\0';
+    updatedUser.creationDate.year = 0;
+    updatedUser.creationDate.month = 0;
+    updatedUser.creationDate.day = 0;
+    strcpy(updatedUser.user, user->user);
+    strcpy(updatedUser.password, newPass);
+    updatedUser.role = (Role)-1;
+    status = updateUserRecord(updatedUser);
+  }
+
+  return status;
 }
 
 User *loginPrompt(void) {

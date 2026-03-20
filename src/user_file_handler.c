@@ -207,3 +207,90 @@ int writeUser(User *user) {
   fclose(userFile);
   return 0;
 }
+
+int updateUserRecord(User updatedUser) {
+  FILE *sourceFile = NULL;
+  FILE *tempFile = NULL;
+  int status = -1;
+  int found = 0;
+  int passLen = (int)strlen(updatedUser.password);
+  char line[USER_LINE_BUF_SIZE];
+  String parsedUser;
+  char encryptedPass[MAX_HEX_PASS_LEN + 1];
+  char selectedEncryptedPass[MAX_HEX_PASS_LEN + 1];
+  Date parsedDate;
+  Date selectedDate;
+  int parsedRole;
+  int selectedRole;
+  unsigned char xorPass[MAX_PASSWORD_LEN];
+
+  if (strlen(updatedUser.user) > 0) {
+    sourceFile = fopen("user.txt", "r");
+    tempFile = fopen("user.tmp", "w");
+
+    if (sourceFile != NULL && tempFile != NULL) {
+      while (fgets(line, sizeof(line), sourceFile) != NULL) {
+        int parsed = sscanf(line, "%31[^:]:%254[^:]:%d-%d-%d:%d", parsedUser,
+                            encryptedPass, &parsedDate.year, &parsedDate.month,
+                            &parsedDate.day, &parsedRole);
+
+        if (parsed == 6 && strcmp(parsedUser, updatedUser.user) == 0) {
+          strcpy(selectedEncryptedPass, encryptedPass);
+          selectedDate = parsedDate;
+          selectedRole = parsedRole;
+
+          if (passLen > 0 && passLen <= MAX_PASSWORD_LEN) {
+            xorBytes(updatedUser.password, passLen, xorPass);
+            if (hexEncode(xorPass, passLen, selectedEncryptedPass,
+                          sizeof(selectedEncryptedPass)) != 0) {
+              selectedEncryptedPass[0] = '\0';
+            }
+          }
+
+          if (updatedUser.creationDate.year > 0 &&
+              updatedUser.creationDate.month >= 1 &&
+              updatedUser.creationDate.month <= 12 &&
+              updatedUser.creationDate.day >= 1 &&
+              updatedUser.creationDate.day <= 31) {
+            selectedDate = updatedUser.creationDate;
+          }
+
+          if ((int)updatedUser.role == SUPPLIER ||
+              (int)updatedUser.role == RECEIVER) {
+            selectedRole = (int)updatedUser.role;
+          }
+
+          if (selectedEncryptedPass[0] != '\0') {
+            fprintf(tempFile, "%s:%s:%04d-%02d-%02d:%d\n", updatedUser.user,
+                    selectedEncryptedPass, selectedDate.year,
+                    selectedDate.month, selectedDate.day, selectedRole);
+            found = 1;
+          } else {
+            fputs(line, tempFile);
+          }
+        } else {
+          fputs(line, tempFile);
+        }
+      }
+    }
+
+    if (sourceFile != NULL) {
+      fclose(sourceFile);
+    }
+    if (tempFile != NULL) {
+      fclose(tempFile);
+    }
+
+    if (found == 1) {
+      if (remove("user.txt") == 0 && rename("user.tmp", "user.txt") == 0) {
+        status = 0;
+      } else {
+        remove("user.tmp");
+      }
+    } else {
+      remove("user.tmp");
+    }
+  }
+
+  return status;
+}
