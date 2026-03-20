@@ -6,5 +6,6 @@
 int getUser(String user, StringLong pass, User *out);
 int usernameExists(String user);
 int writeUser(User *user);
+int updateUserRecord(User updatedUser);
 
 #endif
