@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 static int readCsiUKey(int *keyCode, int *modifier) {
   int ch = getchar();
@@ -145,59 +146,59 @@ static int readRole(Role *outRole) {
 }
 
 static int readCreationDate(Date *outDate) {
-  char buf[32]; // TODO: use time.h instead of user input parsing for dates
-  int status;
+  int status = -1;
+  time_t now = 0;
+  struct tm *localNow = NULL;
 
-  while (1) {
-    printf("Creation Date (YYYY-MM-DD): ");
-    status = readLine(buf, sizeof(buf));
-
-    if (status == -2) {
-      return -1;
+  if (outDate != NULL) {
+    now = time(NULL);
+    if (now != (time_t)-1) {
+      localNow = localtime(&now);
+      if (localNow != NULL) {
+        outDate->year = localNow->tm_year + 1900;
+        outDate->month = localNow->tm_mon + 1;
+        outDate->day = localNow->tm_mday;
+        status = 0;
+      }
     }
-    if (status != 0) {
-      continue;
-    }
-
-    // basic date-format validation
-    if (sscanf(buf, "%d-%d-%d", &outDate->year, &outDate->month,
-               &outDate->day) == 3 &&
-        outDate->month >= 1 && outDate->month <= 12 && outDate->day >= 1 &&
-        outDate->day <= 31) {
-      return 0;
-    }
-
-    printf("Invalid date format.\n");
   }
+
+  return status;
 }
 
 int editUser(User *user, User *in) {
+  int status = 0;
+
   if (user == NULL || in == NULL) {
-    return -1;
+    status = -1;
   }
 
-  if (strlen(in->user) == 0 || strlen(in->password) == 0) {
-    return -1;
+  if (status == 0 && (strlen(in->user) == 0 || strlen(in->password) == 0)) {
+    status = -1;
   }
 
-  if (strcmp(user->user, in->user) != 0 && usernameExists(in->user)) {
-    return -2;
+  if (status == 0 && strcmp(user->user, in->user) != 0 &&
+      usernameExists(in->user)) {
+    status = -2;
   }
 
-  strcpy(user->user, in->user);
-  strcpy(user->password, in->password);
-  user->creationDate = in->creationDate;
-  user->role = in->role;
+  if (status == 0) {
+    strcpy(user->user, in->user);
+    strcpy(user->password, in->password);
+    user->creationDate = in->creationDate;
+    user->role = in->role;
+  }
 
-  return 0;
+  return status;
 }
 
 int registerUser(User *user) {
+  int status = -1;
   if (usernameExists(user->user)) {
-    return -1;
+    return status;
   }
-
-  return writeUser(user);
+  status = writeUser(user);
+  return status;
 }
 
 int registerPrompt(void) {
