@@ -310,7 +310,7 @@ int recoverPasswordPrompt(void) {
   }
 
   if (status == -1 && usernameExists(user)) {
-    printf("Username exists.\n");
+    printf("User %s found.\n", user);
     printf("Enter new password: ");
     input = readLine(newPass, sizeof(newPass));
     if (input == -2) {
@@ -323,11 +323,10 @@ int recoverPasswordPrompt(void) {
       if (resetUserPassword(&tempUser, newPass) == 0) {
         printf("Password updated successfully.\n");
         status = 0;
+      } else {
+        printf("Failed to update password.\n");
+        status = -1;
       }
-    }
-
-    if (status != 0) {
-      printf("Failed to update password.\n");
     }
   } else if (status == -1) {
     printf("Username not found.\n");
