@@ -34,7 +34,9 @@ static int readMenuChoice(void) {
 }
 
 int main(void) {
-  while (1) {
+  int shouldExit = 0;
+
+  while (!shouldExit) {
     int choice = readMenuChoice();
 
     switch (choice) {
@@ -46,7 +48,8 @@ int main(void) {
       printf("\nWelcome, %s!\n", currentUser->user);
       printf("Role: %s\n",
              currentUser->role == SUPPLIER ? "Supplier" : "Receiver");
-      return 0;
+      shouldExit = 1;
+      break;
     }
     case 2:
       registerPrompt();
@@ -54,16 +57,15 @@ int main(void) {
       break;
     case 3:
       recoverPasswordPrompt();
-      return 0;
+      break;
     case 4:
       printf("Exiting...\n");
-      return 0;
+      shouldExit = 1;
+      break;
     default:
       printf("Invalid choice. Please try again.\n");
+      break;
     }
-    continue;
-
-    printf("Invalid choice. Please try again.\n");
   }
 
   return 0;
