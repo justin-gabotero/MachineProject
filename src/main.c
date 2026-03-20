@@ -14,7 +14,8 @@ static int readMenuChoice(void) {
   printf("\n=== Auth Menu ===\n");
   printf("1. Login\n");
   printf("2. Register\n");
-  printf("3. Exit\n");
+  printf("3. Recover Password\n");
+  printf("4. Exit\n");
   printf("Choice: ");
 
   status = readLine(buf, sizeof(buf));
@@ -36,30 +37,31 @@ int main(void) {
   while (1) {
     int choice = readMenuChoice();
 
-    if (choice == 1) {
+    switch (choice) {
+    case 1: {
       User *currentUser = loginPrompt();
-
       if (currentUser == NULL) {
-        continue;
+        break;
       }
-
       printf("\nWelcome, %s!\n", currentUser->user);
       printf("Role: %s\n",
              currentUser->role == SUPPLIER ? "Supplier" : "Receiver");
-      break;
-    }
-
-    if (choice == 2) {
-      registerPrompt();
-
-      printf("You can now login with your new account.\n");
-      continue;
-    }
-
-    if (choice == 3) {
-      printf("Exiting.\n");
       return 0;
     }
+    case 2:
+      registerPrompt();
+      printf("You can now login with your new account.\n");
+      break;
+    case 3:
+      recoverPasswordPrompt();
+      return 0;
+    case 4:
+      printf("Exiting...\n");
+      return 0;
+    default:
+      printf("Invalid choice. Please try again.\n");
+    }
+    continue;
 
     printf("Invalid choice. Please try again.\n");
   }
