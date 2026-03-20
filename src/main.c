@@ -2,6 +2,7 @@
 // Authors: Justin Gabotero, Gabriel Panganiban
 // CCPROG2 Machine Project
 
+#include "user_input.h"
 #include "user_system.h"
 
 #include <stdio.h>
