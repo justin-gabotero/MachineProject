@@ -172,8 +172,23 @@ static int readCreationDate(Date *outDate) {
 }
 
 int editUser(User *user, User *in) {
-  (void)user;
-  (void)in;
+  if (user == NULL || in == NULL) {
+    return -1;
+  }
+
+  if (strlen(in->user) == 0 || strlen(in->password) == 0) {
+    return -1;
+  }
+
+  if (strcmp(user->user, in->user) != 0 && usernameExists(in->user)) {
+    return -2;
+  }
+
+  strcpy(user->user, in->user);
+  strcpy(user->password, in->password);
+  user->creationDate = in->creationDate;
+  user->role = in->role;
+
   return 0;
 }
 
@@ -253,6 +268,28 @@ User *loginUser(String user, StringLong pass) {
     return &logged;
   }
 
+  return NULL;
+}
+
+User *recoverPasswordPrompt(void) {
+  String user;
+  User *found = NULL;
+  int status;
+
+  printf("\n=== Recover Password ===\n");
+  printf("Username: ");
+  status = readLine(user, sizeof(user));
+  if (status == -2) {
+    printf("Password recovery cancelled.\n");
+    return NULL;
+  }
+
+  found = loginUser(user, ""); // attempt to find user by username only
+  if (found != NULL) {
+    return found;
+  }
+
+  printf("Username not found.\n");
   return NULL;
 }
 
