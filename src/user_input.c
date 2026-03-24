@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+// Reads a CSI-u key sequence and extracts the key code and modifier.
 static int readCsiUKey(int *keyCode, int *modifier) {
   int ch = getchar();
   char seq[32];
@@ -44,6 +45,8 @@ static int readCsiUKey(int *keyCode, int *modifier) {
   return 0;
 }
 
+// Reads a line of input from the user into the provided buffer, with support
+// for backspace and ctrl+c.
 int readLine(char *buf, int size) {
   int ch;
   int idx = 0;
