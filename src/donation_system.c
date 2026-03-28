@@ -91,7 +91,7 @@ int addDonationPrompt(User donor, Donation *outDonation) {
   }
 
   // Ask the user for the expiration date of the food they want to donate
-  printf("Pickup Location; ");
+  printf("Pickup Location: ");
   status = readLine(temp.pickupLocation, sizeof(temp.pickupLocation));
   if (status != 0 || strlen(temp.pickupLocation) == 0) {
     return -1;
