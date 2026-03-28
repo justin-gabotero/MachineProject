@@ -6,10 +6,17 @@
 #include <string.h>
 #include <time.h>
 
-// Function to prompt the user for donation details and create a Donation record
-// @param donor, the User struct representing the donor making the donation
-// @param outDonation, a pointer to a Donation struct where the created donation
-// record will be stored
+/**
+ * @brief Prompts the user for donation details and creates a donation record.
+ *
+ * This function collects donation information from the user associated with
+ * the specified donor and stores the resulting record in `outDonation`.
+ *
+ * @param donor The `User` representing the donor making the donation.
+ * @param[out] outDonation Pointer to a `Donation` structure where the created
+ * donation record will be written.
+ * @return 0 on success, -1 on invalid input or failed date retrieval.
+ */
 int addDonationPrompt(User donor, Donation *outDonation) {
 
   Donation temp;
@@ -77,16 +84,12 @@ int addDonationPrompt(User donor, Donation *outDonation) {
   return 0;
 }
 
-// TODO: refactor to not pre-terminateate the output variable, instead return a
-// new variable and assign it to the output variable in the caller function,
-// this way we can avoid unnecessary copying of the struct.
-
-// Function to create a Donation record from a given Donation struct, checks if
-// the input values are valid and if so copies the input to the output variable
-// @param in, a Donation struct containing the details of the donation to be
-// created
-// @param out, a Donation struct where the created donation record will be
-// stored
+/**
+ * @brief Validates and creates a donation record from an input donation.
+ * @param in Donation containing candidate field values.
+ * @param[out] out Pointer to a Donation where validated data is written.
+ * @return 0 on success, -1 on invalid fields or null output pointer.
+ */
 int createDonation(Donation in, Donation *out) {
   // Checks if donation inputs are all valid and have valid values, if not
   // returns -1 to indicate an error
@@ -112,12 +115,24 @@ int createDonation(Donation in, Donation *out) {
   return 0;
 }
 
+/**
+ * @brief Computes the estimated waste reduction contributed by a donation.
+ * @param donation Donation to evaluate.
+ * @return Estimated waste reduction value.
+ */
 double computeDonationWasteReduction(Donation donation) {
   (void)donation;
   return 0; // TODO: Placeholder implementation, replace with actual waste
             // reduction calculation logic later.
 }
 
+/**
+ * @brief Compares two donations by donation date in descending order.
+ * @param left Pointer to the left Donation element.
+ * @param right Pointer to the right Donation element.
+ * @return Negative if left should come before right, positive if after, 0 if
+ *         equal.
+ */
 static int compareDonationDateDesc(const void *left, const void *right) {
   const Donation *a = (const Donation *)left;
   const Donation *b = (const Donation *)right;
@@ -134,9 +149,10 @@ static int compareDonationDateDesc(const void *left, const void *right) {
   return cmp;
 }
 
-// Append the given donation record to donation.txt
-// @param donation, the Donation struct containing the details of the donation
-// to be written to the file.
+/**
+ * @brief Appends a donation record to donation.txt.
+ * @param donation Donation record to persist.
+ */
 void writeDonation(Donation donation) {
   FILE *file = fopen("donation.txt", "a");
   if (file != NULL) {
@@ -155,11 +171,11 @@ void writeDonation(Donation donation) {
   }
 }
 
-// Function to load donation records from donation.txt into an array of
-// Donation structs.
-// @param list, an array of Donation structs where the loaded donation records
-// will be stored
-// @param maxCount, the maximum number of donation records to load into the list
+/**
+ * @brief Loads donation records from donation.txt into an array.
+ * @param[out] list Array of Donation structures that receives loaded records.
+ * @param maxCount Maximum number of records to load.
+ */
 void loadDonation(Donation *list, int maxCount) {
   FILE *file = NULL;
   char line[512];
