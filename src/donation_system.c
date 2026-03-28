@@ -129,4 +129,22 @@ double computeDonationWasteReduction(Donation donation) {
             // reduction calculation logic later.
 }
 
-void writeDonation(Donation donation) {}
+// Append the given donation record to donatin.txt
+// @param donation, the Donation struct containing the details of the donation
+// to be written to the file.
+void writeDonation(Donation donation) {
+  FILE *file = fopen("donation.txt", "a");
+  if (file != NULL) {
+    // username:foodType:quantity:donationDate:expirationDate:weight:pickupLocation
+    // example line: john_doe:bread:2:2024-06-01:2024-06-05:500:123 Main St
+    fprintf(file, "%s:%s:%d:%d-%02d-%02d:%d-%02d-%02d:%d:%s\n",
+            donation.donor.user, donation.foodType, donation.quantity,
+            donation.donationDate.year, donation.donationDate.month,
+            donation.donationDate.day, donation.expirationDate.year,
+            donation.expirationDate.month, donation.expirationDate.day,
+            donation.weight, donation.pickupLocation);
+    fclose(file);
+  } else {
+    printf("Error: Could not open donation.txt for writing.\n");
+  }
+}
