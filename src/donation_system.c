@@ -22,10 +22,9 @@ int addDonationPrompt(User donor, Donation *outDonation) {
   if (status != 0 || strlen(temp.foodType) == 0) {
     return -1;
   }
+
   // Ask the user for the quantity of food they want to donate
   printf("Quantity: ");
-  // converts string input to an integer and checks if it is a valid positive
-  // number
   status = readLine(buf, sizeof(buf));
   if (status != 0 || strlen(buf) == 0) {
     return -1;
@@ -33,6 +32,7 @@ int addDonationPrompt(User donor, Donation *outDonation) {
   if (sscanf(buf, "%d", &temp.quantity) != 1 || temp.quantity <= 0) {
     return -1;
   }
+
   // Ask the user for the weight of food they want to donate
   printf("Total Weight (grams): ");
   status = readLine(buf, sizeof(buf));
@@ -42,11 +42,10 @@ int addDonationPrompt(User donor, Donation *outDonation) {
   if (sscanf(buf, "%d", &temp.weight) != 1 || temp.weight <= 0) {
     return -1;
   }
+
   // Ask the user for the expiration date of the food they want to donate
   printf("Expiration Date(MM-DD-YYYY): ");
   status = readLine(buf, sizeof(buf));
-  // converts string input to an integer and checks if it is a valid positive
-  // number
   if (status != 0 || strlen(buf) == 0) {
     return -1;
   }
@@ -54,23 +53,28 @@ int addDonationPrompt(User donor, Donation *outDonation) {
              &temp.expirationDate.day, &temp.expirationDate.year) != 3) {
     return -1;
   }
+
   // Ask the user for the expiration date of the food they want to donate
   printf("Pickup Location; ");
   status = readLine(temp.pickupLocation, sizeof(temp.pickupLocation));
   if (status != 0 || strlen(temp.pickupLocation) == 0) {
     return -1;
   }
-  // If all inputs are valid, copy the temp variable to the output variable so
-  // that outDonation not contains the Donation Record created fromthe user
-  // input
+
   *outDonation = temp;
   return 0;
 }
+
+// TODO: refactor to not pre-terminateate the output variable, instead return a
+// new variable and assign it to the output variable in the caller function,
+// this way we can avoid unnecessary copying of the struct.
+
 // Function to create a Donation record from a given Donation struct, checks if
 // the input values are valid and if so copies the input to the output variable
-//@param in, a Donation struct containing the details of the donation to be
+// @param in, a Donation struct containing the details of the donation to be
 // created
-//@param out, a Donation struct where the created donation record will be stored
+// @param out, a Donation struct where the created donation record will be
+// stored
 int createDonation(Donation in, Donation *out) {
   // Checks if donation inputs are all valid and have valid values, if not
   // returns -1 to indicate an error
@@ -78,13 +82,14 @@ int createDonation(Donation in, Donation *out) {
       strlen(in.donor.user) == 0 || strlen(in.pickupLocation) == 0) {
     return -1;
   }
-  // checking date validity, month should be between 1 and 12, day should be
-  // between 1 and 31, year should be non-negative
+
+  // checking date validity,
   if (in.expirationDate.year < 0 || in.expirationDate.month < 1 ||
       in.expirationDate.month > 12 || in.expirationDate.day < 1 ||
       in.expirationDate.day > 31) {
     return -1;
   }
+
   // If all inputs are valid, copy the in variable to the output variable
   *out = in;
   return 0;
