@@ -2,6 +2,7 @@
 #include "user_input.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -129,6 +130,22 @@ double computeDonationWasteReduction(Donation donation) {
             // reduction calculation logic later.
 }
 
+static int compareDonationDateDesc(const void *left, const void *right) {
+  const Donation *a = (const Donation *)left;
+  const Donation *b = (const Donation *)right;
+  int cmp = 0;
+
+  if (a->donationDate.year != b->donationDate.year) {
+    cmp = b->donationDate.year - a->donationDate.year;
+  } else if (a->donationDate.month != b->donationDate.month) {
+    cmp = b->donationDate.month - a->donationDate.month;
+  } else {
+    cmp = b->donationDate.day - a->donationDate.day;
+  }
+
+  return cmp;
+}
+
 // Append the given donation record to donation.txt
 // @param donation, the Donation struct containing the details of the donation
 // to be written to the file.
@@ -146,5 +163,89 @@ void writeDonation(Donation donation) {
     fclose(file);
   } else {
     printf("Error: Could not open donation.txt for writing.\n");
+  }
+}
+
+// Function to load donation records from donation.txt into an array of Donation
+// structs, reads each line from the file, parses the donation details, and
+// stores them in the provided list array up to the specified maxCount
+// @param list, an array of Donation structs where the loaded donation records
+// will be stored
+// @param maxCount, the maximum number of donation records to load into the list
+void loadDonation(Donation *list, int maxCount) {
+  FILE *file = NULL;
+  char line[512];
+  int loadedCount = 0;
+
+  if (list != NULL && maxCount > 0) {
+    for (int i = 0; i < maxCount; i++) {
+      list[i].donor.user[0] = '\0';
+      list[i].donor.password[0] = '\0';
+      list[i].donor.creationDate.year = 0;
+      list[i].donor.creationDate.month = 0;
+      list[i].donor.creationDate.day = 0;
+      list[i].donor.role = (Role)-1;
+      list[i].foodType[0] = '\0';
+      list[i].pickupLocation[0] = '\0';
+      list[i].donationDate.year = 0;
+      list[i].donationDate.month = 0;
+      list[i].donationDate.day = 0;
+      list[i].expirationDate.year = 0;
+      list[i].expirationDate.month = 0;
+      list[i].expirationDate.day = 0;
+      list[i].weight = 0;
+      list[i].quantity = 0;
+    }
+
+    file = fopen("donation.txt", "r");
+    if (file != NULL) {
+      while (loadedCount < maxCount &&
+             fgets(line, sizeof(line), file) != NULL) {
+        Donation parsed;
+        int matched = 0;
+
+        parsed.donor.user[0] = '\0';
+        parsed.donor.password[0] = '\0';
+        parsed.donor.creationDate.year = 0;
+        parsed.donor.creationDate.month = 0;
+        parsed.donor.creationDate.day = 0;
+        parsed.donor.role = (Role)-1;
+        parsed.foodType[0] = '\0';
+        parsed.pickupLocation[0] = '\0';
+        parsed.donationDate.year = 0;
+        parsed.donationDate.month = 0;
+        parsed.donationDate.day = 0;
+        parsed.expirationDate.year = 0;
+        parsed.expirationDate.month = 0;
+        parsed.expirationDate.day = 0;
+        parsed.weight = 0;
+        parsed.quantity = 0;
+
+        matched =
+            sscanf(line, "%31[^:]:%31[^:]:%d:%d-%d-%d:%d-%d-%d:%d:%127[^\n]",
+                   parsed.donor.user, parsed.foodType, &parsed.quantity,
+                   &parsed.donationDate.year, &parsed.donationDate.month,
+                   &parsed.donationDate.day, &parsed.expirationDate.year,
+                   &parsed.expirationDate.month, &parsed.expirationDate.day,
+                   &parsed.weight, parsed.pickupLocation);
+
+        if (matched == 11 && parsed.quantity > 0 && parsed.weight > 0 &&
+            parsed.donationDate.month >= 1 && parsed.donationDate.month <= 12 &&
+            parsed.donationDate.day >= 1 && parsed.donationDate.day <= 31 &&
+            parsed.expirationDate.month >= 1 &&
+            parsed.expirationDate.month <= 12 &&
+            parsed.expirationDate.day >= 1 && parsed.expirationDate.day <= 31) {
+          list[loadedCount] = parsed;
+          loadedCount++;
+        }
+      }
+
+      fclose(file);
+    }
+
+    if (loadedCount > 1) {
+      qsort(list, (size_t)loadedCount, sizeof(Donation),
+            compareDonationDateDesc);
+    }
   }
 }
