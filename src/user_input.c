@@ -113,9 +113,19 @@ int readLine(char *buf, int size) {
       continue;
     }
 
-    // append regular printable character
-    if (idx < size - 1) {
-      buf[idx++] = (char)ch;
+    // escape ':' as "%3A" so colon-delimited file formats won't break if user
+    // input contains colons.
+    if (ch == ':') {
+      if (idx < size - 4) {
+        buf[idx++] = '%';
+        buf[idx++] = '3';
+        buf[idx++] = 'A';
+      }
+    } else {
+      // append regular printable character
+      if (idx < size - 1) {
+        buf[idx++] = (char)ch;
+      }
     }
   }
 }
