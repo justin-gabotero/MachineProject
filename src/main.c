@@ -40,45 +40,48 @@ static int readMenuChoice(void) {
 
 int main(void) {
   int shouldExit = 0;
+  int choice = -1;
 
   // Main loop for the authentication menu. It continues until the user chooses
   // to exit or successfully logs in. The menu allows users to login, register,
   // or recover their password.
-  int choice = readMenuChoice();
+  while (shouldExit == 0) {
+    choice = readMenuChoice();
 
-  switch (choice) {
-  case 1: {
-    // Attempt to log in the user. If successful, it welcomes the user and
-    // displays their role. If the login fails, it breaks out of the loop and
-    // returns to the menu.
-    User *currentUser = loginPrompt();
-    if (currentUser == NULL) {
+    switch (choice) {
+    case 1: {
+      // Attempt to log in the user. If successful, it welcomes the user and
+      // displays their role. If the login fails, it breaks out of the loop and
+      // returns to the menu.
+      User *currentUser = loginPrompt();
+      if (currentUser != NULL) {
+        printf("\nWelcome, %s!\n", currentUser->user);
+        printf("Role: %s\n",
+               currentUser->role == SUPPLIER ? "Supplier" : "Receiver");
+        shouldExit = 1;
+      }
       break;
     }
-    printf("\nWelcome, %s!\n", currentUser->user);
-    printf("Role: %s\n",
-           currentUser->role == SUPPLIER ? "Supplier" : "Receiver");
-    shouldExit = 1;
-    break;
+    case 2:
+      // Prompts the user to register a new account. After successful
+      // registration, it informs the user that they can now log in with their
+      // new account. If the registration fails, it returns to the menu.
+      registerPrompt();
+      printf("You can now login with your new account.\n");
+      break;
+    case 3:
+      // Prompts the user to recover their password.
+      recoverPasswordPrompt();
+      break;
+    case 4:
+      printf("Exiting...\n");
+      shouldExit = 1;
+      break;
+    default:
+      printf("Invalid choice. Please try again.\n");
+      break;
+    }
   }
-  case 2:
-    // Prompts the user to register a new account. After successful
-    // registration, it informs the user that they can now log in with their new
-    // account. If the registration fails, it breaks out of the loop and returns
-    // to the menu.
-    registerPrompt();
-    printf("You can now login with your new account.\n");
-    break;
-  case 3:
-    // Prompts the user to recover their password.
-    recoverPasswordPrompt();
-    break;
-  case 4:
-    printf("Exiting...\n");
-    shouldExit = 1;
-    break;
-  default:
-    printf("Invalid choice. Please try again.\n");
-    break;
-  }
+
+  return 0;
 }
