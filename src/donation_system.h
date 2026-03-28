@@ -8,6 +8,7 @@ typedef struct {
   User donor;      // the donor user
   String foodType; // type of food
   StringLong pickupLocation;
+  Date donationDate;
   Date expirationDate;
   int weight; // weight of the donated food in grams
   int quantity;

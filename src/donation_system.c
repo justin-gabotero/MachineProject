@@ -3,6 +3,31 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+
+// THOUGHT: readCreationDate and readDonationDate are currently identical, we
+// can probably refactor them into a single function that can be used for both
+// purposes.
+static int readDonationDate(Date *outDate) {
+  int status = -1;
+  time_t now = 0;
+  struct tm *localNow = NULL;
+
+  if (outDate != NULL) {
+    now = time(NULL);
+    if (now != (time_t)-1) {
+      localNow = localtime(&now);
+      if (localNow != NULL) {
+        outDate->year = localNow->tm_year + 1900;
+        outDate->month = localNow->tm_mon + 1;
+        outDate->day = localNow->tm_mday;
+        status = 0;
+      }
+    }
+  }
+
+  return status;
+}
 
 // Function to prompt the user for donation details and create a Donation record
 // @param donor, the User struct representing the donor making the donation
@@ -15,6 +40,10 @@ int addDonationPrompt(User donor, Donation *outDonation) {
   int status = 0;
   temp.donor =
       donor; // Set the donor field of the temp variable to the input donor
+
+  if (readDonationDate(&temp.donationDate) != 0) {
+    return -1;
+  }
 
   // Ask the user for the type of food they want to donate
   printf("Food type: ");
@@ -95,6 +124,9 @@ int createDonation(Donation in, Donation *out) {
   return 0;
 }
 
-double computeDonationWasteReduction(Donation donation) {}
+double computeDonationWasteReduction(Donation donation) {
+  return 0; // TODO: Placeholder implementation, replace with actual waste
+            // reduction calculation logic later.
+}
 
 void writeDonation(Donation donation) {}
