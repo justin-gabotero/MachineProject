@@ -114,6 +114,11 @@ int addDonationPrompt(User donor, Donation *outDonation) {
 int createDonation(Donation in, Donation *out) {
   // Checks if donation inputs are all valid and have valid values, if not
   // returns -1 to indicate an error
+
+  if (out == NULL) {
+    return -1;
+  }
+
   if (in.weight <= 0 || in.quantity <= 0 || strlen(in.foodType) == 0 ||
       strlen(in.donor.user) == 0 || strlen(in.pickupLocation) == 0) {
     return -1;
