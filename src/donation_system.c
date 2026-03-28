@@ -112,7 +112,7 @@ int createDonation(Donation in, Donation *out) {
     return -1;
   }
 
-  // checking date validity,
+  // checking date validity
   if (in.expirationDate.year < 0 || in.expirationDate.month < 1 ||
       in.expirationDate.month > 12 || in.expirationDate.day < 1 ||
       in.expirationDate.day > 31) {
@@ -129,7 +129,7 @@ double computeDonationWasteReduction(Donation donation) {
             // reduction calculation logic later.
 }
 
-// Append the given donation record to donatin.txt
+// Append the given donation record to donation.txt
 // @param donation, the Donation struct containing the details of the donation
 // to be written to the file.
 void writeDonation(Donation donation) {
