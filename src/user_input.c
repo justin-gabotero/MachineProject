@@ -1,6 +1,7 @@
 #include "user_input.h"
 
 #include <stdio.h>
+#include <time.h>
 
 // Reads a CSI-u key sequence and extracts the key code and modifier.
 static int readCsiUKey(int *keyCode, int *modifier) {
@@ -128,4 +129,25 @@ int readLine(char *buf, int size) {
       }
     }
   }
+}
+
+int getCurrentDate(Date *date) {
+  int status = -1;
+  time_t now = 0;
+  struct tm *localNow = NULL;
+
+  if (date != NULL) {
+    now = time(NULL);
+    if (now != (time_t)-1) {
+      localNow = localtime(&now);
+      if (localNow != NULL) {
+        date->year = localNow->tm_year + 1900;
+        date->month = localNow->tm_mon + 1;
+        date->day = localNow->tm_mday;
+        status = 0;
+      }
+    }
+  }
+
+  return status;
 }

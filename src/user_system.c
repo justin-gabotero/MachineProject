@@ -31,27 +31,6 @@ static int readRole(Role *outRole) {
   return 0;
 }
 
-static int readCreationDate(Date *outDate) {
-  int status = -1;
-  time_t now = 0;
-  struct tm *localNow = NULL;
-
-  if (outDate != NULL) {
-    now = time(NULL);
-    if (now != (time_t)-1) {
-      localNow = localtime(&now);
-      if (localNow != NULL) {
-        outDate->year = localNow->tm_year + 1900;
-        outDate->month = localNow->tm_mon + 1;
-        outDate->day = localNow->tm_mday;
-        status = 0;
-      }
-    }
-  }
-
-  return status;
-}
-
 int editUser(User *user, User *in) {
   int status = 0;
 
@@ -150,7 +129,7 @@ int registerPrompt(void) {
       break;
     }
 
-    if (readCreationDate(&newUser.creationDate) != 0) {
+    if (getCurrentDate(&newUser.creationDate) != 0) {
       printf("Registration cancelled.\n");
       status = -1;
       break;
