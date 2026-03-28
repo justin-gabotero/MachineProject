@@ -177,6 +177,8 @@ void loadDonation(Donation *list, int maxCount) {
   char line[512];
   int loadedCount = 0;
 
+  // Initialize the list array with empty/default values to ensure all fields
+  // are set to known states before loading data from the file.
   if (list != NULL && maxCount > 0) {
     for (int i = 0; i < maxCount; i++) {
       list[i].donor.user[0] = '\0';
@@ -197,6 +199,9 @@ void loadDonation(Donation *list, int maxCount) {
       list[i].quantity = 0;
     }
 
+    // Open donation.txt for reading and load donation records into the list
+    // array, parsing each line and validating the data before storing it in the
+    // array.
     file = fopen("donation.txt", "r");
     if (file != NULL) {
       while (loadedCount < maxCount &&
@@ -243,6 +248,12 @@ void loadDonation(Donation *list, int maxCount) {
       fclose(file);
     }
 
+    // WARN: not sure if we're allowed to use qsort from the standard library,
+    // if not we can implement our own.
+
+    // If more than one donation record was loaded, sort the list by donation
+    // date in descending order (most recent first) using the
+    // compareDonationDateDesc function as the comparison function for qsort.
     if (loadedCount > 1) {
       qsort(list, (size_t)loadedCount, sizeof(Donation),
             compareDonationDateDesc);
