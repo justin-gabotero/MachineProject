@@ -246,8 +246,12 @@ void loadDonation(Donation *list, int maxCount) {
                    &parsed.weight, parsed.pickupLocation);
 
         if (matched == 11 && parsed.quantity > 0 && parsed.weight > 0 &&
+            parsed.donationDate.year >= 1970 &&
+            parsed.donationDate.year <= 2100 &&
             parsed.donationDate.month >= 1 && parsed.donationDate.month <= 12 &&
             parsed.donationDate.day >= 1 && parsed.donationDate.day <= 31 &&
+            parsed.expirationDate.year >= 1970 &&
+            parsed.expirationDate.year <= 2100 &&
             parsed.expirationDate.month >= 1 &&
             parsed.expirationDate.month <= 12 &&
             parsed.expirationDate.day >= 1 && parsed.expirationDate.day <= 31) {
