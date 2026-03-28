@@ -33,6 +33,15 @@ int addDonationPrompt(User donor, Donation *outDonation) {
   if (sscanf(buf, "%d", &temp.quantity) != 1 || temp.quantity <= 0) {
     return -1;
   }
+  // Ask the user for the weight of food they want to donate
+  printf("Total Weight (grams): ");
+  status = readLine(buf, sizeof(buf));
+  if (status != 0 || strlen(buf) == 0) {
+    return -1;
+  }
+  if (sscanf(buf, "%d", &temp.weight) != 1 || temp.weight <= 0) {
+    return -1;
+  }
   // Ask the user for the expiration date of the food they want to donate
   printf("Expiration Date(MM-DD-YYYY): ");
   status = readLine(buf, sizeof(buf));
@@ -41,8 +50,8 @@ int addDonationPrompt(User donor, Donation *outDonation) {
   if (status != 0 || strlen(buf) == 0) {
     return -1;
   }
-  if (sscanf(buf, "%d-%d-%d", &temp.monthExpiration, &temp.dayExpiration,
-             &temp.yearExpiration) != 3) {
+  if (sscanf(buf, "%d-%d-%d", &temp.expirationDate.month,
+             &temp.expirationDate.day, &temp.expirationDate.year) != 3) {
     return -1;
   }
   // Ask the user for the expiration date of the food they want to donate
@@ -65,15 +74,15 @@ int addDonationPrompt(User donor, Donation *outDonation) {
 int createDonation(Donation in, Donation *out) {
   // Checks if donation inputs are all valid and have valid values, if not
   // returns -1 to indicate an error
-  if (in.quantity <= 0 || strlen(in.foodType) == 0 ||
+  if (in.weight <= 0 || in.quantity <= 0 || strlen(in.foodType) == 0 ||
       strlen(in.donor.user) == 0 || strlen(in.pickupLocation) == 0) {
     return -1;
   }
   // checking date validity, month should be between 1 and 12, day should be
   // between 1 and 31, year should be non-negative
-  if (in.yearExpiration < 0 || in.monthExpiration < 1 ||
-      in.monthExpiration > 12 || in.dayExpiration < 1 ||
-      in.dayExpiration > 31) {
+  if (in.expirationDate.year < 0 || in.expirationDate.month < 1 ||
+      in.expirationDate.month > 12 || in.expirationDate.day < 1 ||
+      in.expirationDate.day > 31) {
     return -1;
   }
   // If all inputs are valid, copy the in variable to the output variable

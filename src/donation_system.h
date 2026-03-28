@@ -5,13 +5,12 @@
 #include <stdio.h>
 
 typedef struct {
-  User donor;        // the donor user
-  char foodType[32]; // type of food
+  User donor;      // the donor user
+  String foodType; // type of food
+  StringLong pickupLocation;
+  Date expirationDate;
+  int weight; // weight of the donated food in grams
   int quantity;
-  int yearExpiration;
-  int monthExpiration;
-  int dayExpiration;
-  char pickupLocation[128];
 } Donation;
 
 int addDonationPrompt(User donor, Donation *outDonation);
