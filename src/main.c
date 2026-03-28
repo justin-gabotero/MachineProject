@@ -55,9 +55,8 @@ int main(void) {
       // returns to the menu.
       User *currentUser = loginPrompt();
       if (currentUser != NULL) {
-        printf("\nWelcome, %s!\n", currentUser->user);
-        printf("Role: %s\n",
-               currentUser->role == SUPPLIER ? "Supplier" : "Receiver");
+        // Successfully logged in, display the user menu and welcome message.
+        userMenu(currentUser);
         shouldExit = 1;
       }
       break;

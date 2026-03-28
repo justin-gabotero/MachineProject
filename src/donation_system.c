@@ -113,6 +113,7 @@ int createDonation(Donation in, Donation *out) {
 }
 
 double computeDonationWasteReduction(Donation donation) {
+  (void)donation;
   return 0; // TODO: Placeholder implementation, replace with actual waste
             // reduction calculation logic later.
 }

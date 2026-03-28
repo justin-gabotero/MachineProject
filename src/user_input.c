@@ -1,9 +1,14 @@
 #include "user_input.h"
+#include "user_system.h"
 
 #include <stdio.h>
 #include <time.h>
 
-// Reads a CSI-u key sequence and extracts the key code and modifier.
+// Reads a CSI-u key sequence for modern terminals and extracts the key code and
+// modifier.
+// @param keyCode Pointer to store the extracted key code.
+// @param modifier Pointer to store the extracted modifier (e.g., Ctrl).
+// @return 1 if a valid CSI-u sequence was read, 0 otherwise.
 static int readCsiUKey(int *keyCode, int *modifier) {
   int ch = getchar();
   char seq[32];
@@ -48,6 +53,9 @@ static int readCsiUKey(int *keyCode, int *modifier) {
 
 // Reads a line of input from the user into the provided buffer, with support
 // for backspace and ctrl+c.
+// @param buf Buffer to store the input line.
+// @param size Size of the buffer.
+// @return 0 on success, -1 on error, -2 if ctrl+c was detected.
 int readLine(char *buf, int size) {
   int ch;
   int idx = 0;
@@ -147,6 +155,81 @@ int getCurrentDate(Date *date) {
         status = 0;
       }
     }
+  }
+
+  return status;
+}
+
+static int readUserMenuChoice(User *currentUser) {
+  char buf[16];
+  int choice = -1;
+  int status;
+
+  printf("\n=== User Menu ===\n");
+  printf("1. View Profile\n");
+
+  if (currentUser->role == SUPPLIER) {
+    printf("2. View Donations\n");
+    printf("3. Create Donation\n");
+  } else if (currentUser->role == RECEIVER) {
+    printf("2. View Requests\n");
+    printf("3. Create Request\n");
+  }
+  printf("4. View All Donations\n");
+  printf("5. Logout\n");
+  printf("Choice: ");
+
+  status = readLine(buf, sizeof(buf));
+  if (status == -2) {
+    return 2;
+  }
+  if (status != 0) {
+    return -1;
+  }
+
+  if (sscanf(buf, "%d", &choice) != 1) {
+    return -1;
+  }
+
+  return choice;
+}
+
+int userMenu(User *currentUser) {
+  int status = 0, choice = -1;
+
+  // get the role from the user
+  if (currentUser == NULL) {
+    status = -1;
+  }
+
+  if (status == 0) {
+    printf("\nWelcome, %s! Your role is: %s\n", currentUser->user,
+           currentUser->role == SUPPLIER   ? "Donor"
+           : currentUser->role == RECEIVER ? "Recipient"
+                                           : "Unknown");
+  }
+
+  choice = readUserMenuChoice(currentUser);
+
+  switch (choice) {
+  case 1:
+    // View Profile
+    break;
+  case 2:
+    // View Donations/Requests
+    break;
+  case 3:
+    // Create Donation/Request
+    break;
+  case 4:
+    // View All Donations
+    break;
+  case 5:
+    // Logout
+    break;
+  default:
+    printf("Invalid choice. Please try again.\n");
+    break;
   }
 
   return status;
