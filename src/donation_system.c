@@ -39,6 +39,12 @@ int addDonationPrompt(User donor, Donation *outDonation) {
   Donation temp;
   char buf[128];
   int status = 0;
+
+  // Check if the output pointer is valid before assigning values.
+  if (outDonation == NULL) {
+    return -1;
+  }
+
   temp.donor =
       donor; // Set the donor field of the temp variable to the input donor
 
