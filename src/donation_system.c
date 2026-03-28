@@ -171,15 +171,15 @@ void writeDonation(Donation donation) {
             donation.donationDate.day, donation.expirationDate.year,
             donation.expirationDate.month, donation.expirationDate.day,
             donation.weight, donation.pickupLocation);
+
     fclose(file);
   } else {
     printf("Error: Could not open donation.txt for writing.\n");
   }
 }
 
-// Function to load donation records from donation.txt into an array of Donation
-// structs, reads each line from the file, parses the donation details, and
-// stores them in the provided list array up to the specified maxCount
+// Function to load donation records from donation.txt into an array of
+// Donation structs.
 // @param list, an array of Donation structs where the loaded donation records
 // will be stored
 // @param maxCount, the maximum number of donation records to load into the list
@@ -210,9 +210,7 @@ void loadDonation(Donation *list, int maxCount) {
       list[i].quantity = 0;
     }
 
-    // Open donation.txt for reading and load donation records into the list
-    // array, parsing each line and validating the data before storing it in the
-    // array.
+    // Open donation.txt for reading and load donation records into the list.
     file = fopen("donation.txt", "r");
     if (file != NULL) {
       while (loadedCount < maxCount &&
