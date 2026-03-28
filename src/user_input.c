@@ -4,11 +4,13 @@
 #include <stdio.h>
 #include <time.h>
 
-// Reads a CSI-u key sequence for modern terminals and extracts the key code and
-// modifier.
-// @param keyCode Pointer to store the extracted key code.
-// @param modifier Pointer to store the extracted modifier (e.g., Ctrl).
-// @return 1 if a valid CSI-u sequence was read, 0 otherwise.
+/**
+ * @brief Reads a CSI-u key sequence for modern terminals and extracts key
+ *        metadata.
+ * @param keyCode Pointer to store the extracted key code.
+ * @param modifier Pointer to store the extracted modifier (e.g., Ctrl).
+ * @return 1 if a valid CSI-u sequence was read, 0 otherwise.
+ */
 static int readCsiUKey(int *keyCode, int *modifier) {
   int ch = getchar();
   char seq[32];
@@ -51,11 +53,13 @@ static int readCsiUKey(int *keyCode, int *modifier) {
   return 0;
 }
 
-// Reads a line of input from the user into the provided buffer, with support
-// for backspace and ctrl+c.
-// @param buf Buffer to store the input line.
-// @param size Size of the buffer.
-// @return 0 on success, -1 on error, -2 if ctrl+c was detected.
+/**
+ * @brief Reads a line of input from the user with backspace and Ctrl+C
+ *        handling.
+ * @param buf Buffer to store the input line.
+ * @param size Size of the buffer.
+ * @return 0 on success, -1 on error, -2 if Ctrl+C was detected.
+ */
 int readLine(char *buf, int size) {
   int ch;
   int idx = 0;
@@ -139,6 +143,11 @@ int readLine(char *buf, int size) {
   }
 }
 
+/**
+ * @brief Gets the current local date from the system clock.
+ * @param date Pointer to a Date structure to fill.
+ * @return 0 on success, -1 on failure.
+ */
 int getCurrentDate(Date *date) {
   int status = -1;
   time_t now = 0;
@@ -160,6 +169,12 @@ int getCurrentDate(Date *date) {
   return status;
 }
 
+/**
+ * @brief Displays the user menu and reads the selected menu option.
+ * @param currentUser Pointer to the currently logged-in user.
+ * @return Selected menu option on success, 2 if Ctrl+C is detected, or -1 on
+ *         invalid input.
+ */
 static int readUserMenuChoice(User *currentUser) {
   char buf[16];
   int choice = -1;
@@ -194,6 +209,11 @@ static int readUserMenuChoice(User *currentUser) {
   return choice;
 }
 
+/**
+ * @brief Handles the main user menu flow after login.
+ * @param currentUser Pointer to the currently logged-in user.
+ * @return 0 on success, -1 if the user pointer is invalid.
+ */
 int userMenu(User *currentUser) {
   int status = 0, choice = -1;
 
