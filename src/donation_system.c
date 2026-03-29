@@ -8,6 +8,12 @@
 
 #define MAX_DONATIONS 512
 
+/**
+ * @brief Retrieves the human-readable name of a zone based on its enum value.
+ *
+ * @param zone The enum value representing the zone.
+ * @return const char*
+ */
 const char *getZoneName(int zone) {
   const char *status = NULL;
 
@@ -40,6 +46,13 @@ const char *getZoneName(int zone) {
   return status;
 }
 
+/**
+ * @brief Checks if a donation has been successfully loaded with valid data.
+ *
+ * @param donation Pointer to the donation to check.
+ * @return int 1 if the donation is considered loaded with valid data, 0
+ * otherwise.
+ */
 static int isLoadedDonation(const Donation *donation) {
   int status = 0;
 
@@ -55,12 +68,23 @@ static int isLoadedDonation(const Donation *donation) {
   return status;
 }
 
+/**
+ * @brief Prints a date in the format YYYY-MM-DD.
+ *
+ * @param date Pointer to the date to print.
+ */
 static void printDate(const Date *date) {
   if (date != NULL) {
     printf("%04d-%02d-%02d", date->year, date->month, date->day);
   }
 }
 
+/**
+ * @brief Prints the details of a single donation entry.
+ *
+ * @param donation Pointer to the donation to print.
+ * @param index The index of the donation in the list.
+ */
 static void printDonationEntry(const Donation *donation, int index) {
   if (donation != NULL) {
     printf("%d. Donor: %s\n", index, donation->donor.user);
@@ -507,15 +531,11 @@ void computeMonthlyStats(Donation list[], int count, int year, int month) {
       totalWaste += computeDonationWasteReduction(list[i]);
     }
   }
-  // If there are any donations, Calculate the average quantity donated per
-  // donation for the specified month and year
+  // Calculate the average quantity per month.
   if (monthlyTotalDonations > 0) {
     avgQuantity = (float)totalQuantity / monthlyTotalDonations;
   }
-  // If there are any donations, print the monthly stats including total
-  // donations, total quantity donated, and estimated waste reduction.
-  // Otherwise, print a message indicating that no donations were found for that
-  // month and year
+  // If there are any donations, print the monthly statistics including total.
   if (monthlyTotalDonations > 0) {
     printf("Monthly Stats for %d-%02d:\n", year, month);
     printf("Total Donations: %d\n", monthlyTotalDonations);
