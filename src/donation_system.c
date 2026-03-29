@@ -9,6 +9,8 @@
 
 #define MAX_DONATIONS 512
 #define MAX_REQUESTS 512
+#define CO2_KG_PER_KG_FOOD 2.5
+#define KG_PER_MEAL 0.5
 
 /**
  * @brief Retrieves the human-readable name of a zone based on its enum value.
@@ -140,6 +142,30 @@ static int containsIgnoreCase(const char *text, const char *pattern) {
 
 static int dateToInt(Date date) {
   return (date.year * 10000) + (date.month * 100) + date.day;
+}
+
+static int readOptionalPositiveInt(const char *prompt, int defaultValue,
+                                   int minValue, int maxValue, int *outValue) {
+  char buf[32];
+  int status = -1;
+  int parsed = 0;
+
+  if (outValue != NULL) {
+    printf("%s", prompt);
+    if (readLine(buf, sizeof(buf)) == 0) {
+      if (strlen(buf) == 0) {
+        *outValue = defaultValue;
+        status = 0;
+      } else {
+        parsed = sscanf(buf, "%d", outValue);
+        if (parsed == 1 && *outValue >= minValue && *outValue <= maxValue) {
+          status = 0;
+        }
+      }
+    }
+  }
+
+  return status;
 }
 
 static int matchesSearchFilters(const Donation *donation,
@@ -341,6 +367,77 @@ void searchDonations(void) {
 
   if (shown == 0) {
     printf("No donations match the search criteria.\n");
+  }
+}
+
+/**
+ * @brief Displays aggregate donation statistics and impact metrics.
+ */
+void viewDonationImpactStats(void) {
+  Donation donations[MAX_DONATIONS];
+  Date currentDate;
+  int totalDonations = 0;
+  int totalQuantity = 0;
+  double totalWeightKg = 0.0;
+  double totalWastePreventedKg = 0.0;
+  double averageDonationSizeKg = 0.0;
+  double estimatedCo2PreventedKg = 0.0;
+  double estimatedMealsProvided = 0.0;
+  int month = 0;
+  int year = 0;
+  int monthStatus = -1;
+  int yearStatus = -1;
+
+  currentDate.year = 0;
+  currentDate.month = 0;
+  currentDate.day = 0;
+
+  loadDonation(donations, MAX_DONATIONS);
+
+  for (int i = 0; i < MAX_DONATIONS; i++) {
+    if (isLoadedDonation(&donations[i])) {
+      totalDonations++;
+      totalQuantity += donations[i].quantity;
+      totalWeightKg += donations[i].weight / 1000.0;
+    }
+  }
+
+  totalWastePreventedKg = computeTotalWasteReduction(donations, MAX_DONATIONS);
+
+  if (totalDonations > 0) {
+    averageDonationSizeKg = totalWeightKg / totalDonations;
+  }
+
+  estimatedCo2PreventedKg = totalWastePreventedKg * CO2_KG_PER_KG_FOOD;
+  estimatedMealsProvided = totalWeightKg / KG_PER_MEAL;
+
+  printf("\n=== Donation Impact Stats ===\n");
+  printf("Total Donations: %d\n", totalDonations);
+  printf("Total Quantity Donated: %d\n", totalQuantity);
+  printf("Total Food Waste Prevented: %.2f kg\n", totalWastePreventedKg);
+  printf("Average Donation Size: %.2f kg\n", averageDonationSizeKg);
+  printf("Estimated CO2 Emissions Prevented: %.2f kg CO2e\n",
+         estimatedCo2PreventedKg);
+  printf("Estimated Meals Provided: %.0f meals\n", estimatedMealsProvided);
+  printf(
+      "(Assumptions: 1 kg saved food = %.2f kg CO2e, 1 meal = %.2f kg food)\n",
+      CO2_KG_PER_KG_FOOD, KG_PER_MEAL);
+
+  if (getCurrentDate(&currentDate) == 0) {
+    monthStatus = readOptionalPositiveInt(
+        "\nEnter month for monthly stats (1-12, blank=current month): ",
+        currentDate.month, 1, 12, &month);
+    yearStatus = readOptionalPositiveInt(
+        "Enter year for monthly stats (blank=current year): ", currentDate.year,
+        1970, 2100, &year);
+
+    if (monthStatus == 0 && yearStatus == 0) {
+      computeMonthlyStats(donations, MAX_DONATIONS, year, month);
+    } else {
+      printf("Invalid month/year input. Monthly stats were not generated.\n");
+    }
+  } else {
+    printf("Could not read current date. Monthly stats were not generated.\n");
   }
 }
 
