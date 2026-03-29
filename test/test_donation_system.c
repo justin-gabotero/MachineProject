@@ -88,8 +88,8 @@ static void testCreateDonationInvalidWeight(TestResult *result) {
   passed = actualValue == -1;
 
   snprintf(actual, sizeof(actual), "%d", actualValue);
-  setResult(result, "createDonation", "weight=0 edge case",
-            "weight=0, qty=1", "-1", actual, passed);
+  setResult(result, "createDonation", "weight=0 edge case", "weight=0, qty=1",
+            "-1", actual, passed);
 }
 
 static void testCreateDonationInvalidDateMonth(TestResult *result) {
@@ -128,8 +128,8 @@ static void testCreateDonationSuccess(TestResult *result) {
   passed = status == 0 && copiedFields == 1;
   snprintf(actual, sizeof(actual), "status=%d copied=%d", status, copiedFields);
   setResult(result, "createDonation", "valid donation",
-            "valid donor/food/date/zone/location", "status=0 copied=1",
-            actual, passed);
+            "valid donor/food/date/zone/location", "status=0 copied=1", actual,
+            passed);
 }
 
 static void
@@ -187,8 +187,7 @@ static void testComputeTotalWasteReductionMixed(TestResult *result) {
 
   snprintf(actual, sizeof(actual), "%.2f", actualValue);
   setResult(result, "computeTotalWasteReduction", "mixed valid/invalid",
-            "weights=[1000,700,2800], qty=[1,0,4]", "3.80", actual,
-            passed);
+            "weights=[1000,700,2800], qty=[1,0,4]", "3.80", actual, passed);
 }
 
 static void testLoadDonationSortAndFilter(TestResult *result) {
@@ -262,8 +261,7 @@ static void printResults(TestResult results[], int count) {
 
     printf("%-20s | %-11d | %-35s | %-12s | %-16s | %-16s | %-3s\n",
            results[i].functionName, i + 1, results[i].description,
-           results[i].input, results[i].expected, results[i].actual,
-           statusTag);
+           results[i].input, results[i].expected, results[i].actual, statusTag);
 
     if (results[i].passed) {
       passedCount++;

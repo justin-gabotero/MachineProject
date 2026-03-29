@@ -226,8 +226,7 @@ int main(void) {
   printCaseResult(5, "invalid donation quantity rejected",
                   "food=Rice,qty=0,wt=1000,zone=2", case5Passed);
   printCaseResult(6, "large valid donation accepted",
-                  "food=Canned,qty=1000000,wt=2000000000,zone=5",
-                  case6Passed);
+                  "food=Canned,qty=1000000,wt=2000000000,zone=5", case6Passed);
 
   if (case1Passed) {
     passedCount++;

@@ -97,8 +97,8 @@ static void testRegisterUserSuccess(TestResult *result) {
   snprintf(actual, sizeof(actual), "status=%d login=%s", status,
            logged != NULL ? "found" : "NULL");
   setResult(result, "registerUser", "valid new user",
-            "username=newuser,password=pass123", "status=0 login=found",
-            actual, passed);
+            "username=newuser,password=pass123", "status=0 login=found", actual,
+            passed);
 }
 
 static void testRegisterUserDuplicate(TestResult *result) {
@@ -126,8 +126,8 @@ static void testRegisterUserNullInput(TestResult *result) {
   passed = status == -1;
 
   snprintf(actual, sizeof(actual), "%d", status);
-  setResult(result, "registerUser", "null input", "user=NULL", "-1",
-            actual, passed);
+  setResult(result, "registerUser", "null input", "user=NULL", "-1", actual,
+            passed);
 }
 
 static void testLoginUserSuccess(TestResult *result) {
@@ -159,8 +159,7 @@ static void testLoginUserWrongPassword(TestResult *result) {
 
   snprintf(actual, sizeof(actual), "%s", found != NULL ? "found" : "NULL");
   setResult(result, "loginUser", "wrong password",
-            "username=login_wrong,password=badpass", "NULL", actual,
-            passed);
+            "username=login_wrong,password=badpass", "NULL", actual, passed);
 }
 
 static void testLoginUserNonexistent(TestResult *result) {
@@ -213,8 +212,8 @@ static void testEditUserEmptyInput(TestResult *result) {
   passed = status == -1;
 
   snprintf(actual, sizeof(actual), "%d", status);
-  setResult(result, "editUser", "empty input",
-            "in.user='',in.password=''", "-1", actual, passed);
+  setResult(result, "editUser", "empty input", "in.user='',in.password=''",
+            "-1", actual, passed);
 }
 
 static void testEditUserDuplicateUsername(TestResult *result) {
@@ -234,8 +233,7 @@ static void testEditUserDuplicateUsername(TestResult *result) {
 
   snprintf(actual, sizeof(actual), "%d", status);
   setResult(result, "editUser", "duplicate username",
-            "current=current_user,in.user=target_user", "-2", actual,
-            passed);
+            "current=current_user,in.user=target_user", "-2", actual, passed);
 }
 
 static void printResults(TestResult results[], int count) {
@@ -255,8 +253,7 @@ static void printResults(TestResult results[], int count) {
 
     printf("%-20s | %-11d | %-35s | %-12s | %-16s | %-16s | %-3s\n",
            results[i].functionName, i + 1, results[i].description,
-           results[i].input, results[i].expected, results[i].actual,
-           statusTag);
+           results[i].input, results[i].expected, results[i].actual, statusTag);
 
     if (results[i].passed) {
       passedCount++;
