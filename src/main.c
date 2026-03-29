@@ -7,10 +7,11 @@
 
 #include <stdio.h>
 
-// This is the main entry point for the Animo FoodConnect application. It
-// provides a simple command-line interface for users to log in, register, or
-// recover their password. The main function displays a menu and handles user
-// input to navigate through the authentication options.
+/**
+ * @brief Shows the menu for login/registration
+ *
+ * @return int 0 on normal exit, -1 on error, -2 on Ctrl+C detected
+ */
 static int readMenuChoice(void) {
   char buf[16];
   int choice = -1;
