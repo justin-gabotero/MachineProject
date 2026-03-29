@@ -132,63 +132,85 @@ int addDonationPrompt(User donor, Donation *outDonation) {
 
   // Check if the output pointer is valid before assigning values.
   if (outDonation == NULL) {
-    return -1;
+    status = -1;
   }
 
-  temp.donor =
-      donor; // Set the donor field of the temp variable to the input donor
+  if (status == 0) {
+    temp.donor =
+        donor; // Set the donor field of the temp variable to the input donor
 
-  if (getCurrentDate(&temp.donationDate) != 0) {
-    return -1;
-  }
-
-  // Ask the user for the type of food they want to donate
-  printf("Food type: ");
-  status = readLine(temp.foodType, sizeof(temp.foodType));
-  if (status != 0 || strlen(temp.foodType) == 0) {
-    return -1;
+    if (getCurrentDate(&temp.donationDate) != 0) {
+      status = -1;
+    }
   }
 
-  // Ask the user for the quantity of food they want to donate
-  printf("Quantity: ");
-  status = readLine(buf, sizeof(buf));
-  if (status != 0 || strlen(buf) == 0) {
-    return -1;
-  }
-  if (sscanf(buf, "%d", &temp.quantity) != 1 || temp.quantity <= 0) {
-    return -1;
-  }
-
-  // Ask the user for the weight of food they want to donate
-  printf("Total Weight (grams): ");
-  status = readLine(buf, sizeof(buf));
-  if (status != 0 || strlen(buf) == 0) {
-    return -1;
-  }
-  if (sscanf(buf, "%d", &temp.weight) != 1 || temp.weight <= 0) {
-    return -1;
+  if (status == 0) {
+    // Ask the user for the type of food they want to donate
+    printf("Food type: ");
+    status = readLine(temp.foodType, sizeof(temp.foodType));
+    if (status != 0 || strlen(temp.foodType) == 0) {
+      status = -1;
+    }
   }
 
-  // Ask the user for the expiration date of the food they want to donate
-  printf("Expiration Date(MM-DD-YYYY): ");
-  status = readLine(buf, sizeof(buf));
-  if (status != 0 || strlen(buf) == 0) {
-    return -1;
+  if (status == 0) {
+    // Ask the user for the quantity of food they want to donate
+    printf("Quantity: ");
+    status = readLine(buf, sizeof(buf));
+    if (status != 0 || strlen(buf) == 0) {
+      status = -1;
+    }
   }
-  if (sscanf(buf, "%d-%d-%d", &temp.expirationDate.month,
+  if (status == 0 &&
+      (sscanf(buf, "%d", &temp.quantity) != 1 || temp.quantity <= 0)) {
+    status = -1;
+  }
+
+  if (status == 0) {
+    // Ask the user for the weight of food they want to donate
+    printf("Total Weight (grams): ");
+    status = readLine(buf, sizeof(buf));
+    if (status != 0 || strlen(buf) == 0) {
+      status = -1;
+    }
+  }
+  if (status == 0 &&
+      (sscanf(buf, "%d", &temp.weight) != 1 || temp.weight <= 0)) {
+    status = -1;
+  }
+
+  if (status == 0) {
+    // Ask the user for the expiration date of the food they want to donate
+    printf("Expiration Date(MM-DD-YYYY): ");
+    status = readLine(buf, sizeof(buf));
+    if (status != 0 || strlen(buf) == 0) {
+      status = -1;
+    }
+  }
+  if (status == 0 &&
+      sscanf(buf, "%d-%d-%d", &temp.expirationDate.month,
              &temp.expirationDate.day, &temp.expirationDate.year) != 3) {
-    return -1;
+    status = -1;
   }
 
-  // Ask the user for the pickup location for the food they want to donate
-  printf("Pickup Location: ");
-  status = readLine(temp.pickupLocation, sizeof(temp.pickupLocation));
-  if (status != 0 || strlen(temp.pickupLocation) == 0) {
-    return -1;
+  if (status == 0) {
+    // Ask the user for the pickup location for the food they want to donate
+    printf("Pickup Location: ");
+    status = readLine(temp.pickupLocation, sizeof(temp.pickupLocation));
+    if (status != 0 || strlen(temp.pickupLocation) == 0) {
+      status = -1;
+    }
   }
 
-  *outDonation = temp;
-  return 0;
+  if (status == 0) {
+    *outDonation = temp;
+  }
+
+  if (status != 0) {
+    status = -1;
+  }
+
+  return status;
 }
 
 /**
@@ -200,26 +222,32 @@ int addDonationPrompt(User donor, Donation *outDonation) {
 int createDonation(Donation in, Donation *out) {
   // Checks if donation inputs are all valid and have valid values, if not
   // returns -1 to indicate an error
+  int status = 0;
 
   if (out == NULL) {
-    return -1;
+    status = -1;
   }
 
-  if (in.weight <= 0 || in.quantity <= 0 || strlen(in.foodType) == 0 ||
-      strlen(in.donor.user) == 0 || strlen(in.pickupLocation) == 0) {
-    return -1;
+  if (status == 0 &&
+      (in.weight <= 0 || in.quantity <= 0 || strlen(in.foodType) == 0 ||
+       strlen(in.donor.user) == 0 || strlen(in.pickupLocation) == 0)) {
+    status = -1;
   }
 
   // checking date validity
-  if (in.expirationDate.year < 0 || in.expirationDate.month < 1 ||
-      in.expirationDate.month > 12 || in.expirationDate.day < 1 ||
-      in.expirationDate.day > 31) {
-    return -1;
+  if (status == 0 &&
+      (in.expirationDate.year < 0 || in.expirationDate.month < 1 ||
+       in.expirationDate.month > 12 || in.expirationDate.day < 1 ||
+       in.expirationDate.day > 31)) {
+    status = -1;
   }
 
   // If all inputs are valid, copy the in variable to the output variable
-  *out = in;
-  return 0;
+  if (status == 0) {
+    *out = in;
+  }
+
+  return status;
 }
 
 /**
@@ -228,12 +256,14 @@ int createDonation(Donation in, Donation *out) {
  * @return Estimated waste reduction value.
  */
 double computeDonationWasteReduction(Donation donation) {
-  if (donation.weight <= 0 || donation.quantity <= 0) {
-    return 0.0;
+  double wasteReduction = 0.0;
+
+  if (donation.weight > 0 && donation.quantity > 0) {
+    wasteReduction =
+        donation.weight / 1000.0; // Convert grams to kilograms estimate
   }
 
-  return donation.weight /
-         1000.0; // Convert grams to kilograms for waste reduction estimate
+  return wasteReduction;
 }
 
 /**

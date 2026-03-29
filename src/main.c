@@ -15,6 +15,7 @@ static int readMenuChoice(void) {
   char buf[16];
   int choice = -1;
   int status;
+  int result = -1;
 
   printf("\n=== Auth Menu ===\n");
   printf("1. Login\n");
@@ -25,17 +26,14 @@ static int readMenuChoice(void) {
 
   status = readLine(buf, sizeof(buf));
   if (status == -2) {
-    return -2;
-  }
-  if (status != 0) {
-    return -1;
+    result = -2;
   }
 
-  if (sscanf(buf, "%d", &choice) != 1) {
-    return -1;
+  if (result == -1 && status == 0 && sscanf(buf, "%d", &choice) == 1) {
+    result = choice;
   }
 
-  return choice;
+  return result;
 }
 
 int main(void) {

@@ -9,26 +9,31 @@
 static int readRole(Role *outRole) {
   char buf[16];
   int choice = -1;
-  int status;
+  int status = -1;
+  int done = 0;
 
-  while (choice != 0 && choice != 1) {
+  while (done == 0) {
     // only allow two valid role values
     printf("Role (0 = Supplier, 1 = Receiver): ");
     status = readLine(buf, sizeof(buf));
-    if (status == -2) {
-      return -1;
-    }
-    if (status != 0) {
-      continue;
-    }
 
-    if (sscanf(buf, "%d", &choice) != 1) {
-      choice = -1;
+    if (status == -2) {
+      status = -1;
+      done = 1;
+    } else if (status == 0) {
+      if (sscanf(buf, "%d", &choice) != 1) {
+        choice = -1;
+      }
+
+      if (choice == 0 || choice == 1) {
+        *outRole = (choice == 0) ? SUPPLIER : RECEIVER;
+        status = 0;
+        done = 1;
+      }
     }
   }
 
-  *outRole = (choice == 0) ? SUPPLIER : RECEIVER;
-  return 0;
+  return status;
 }
 
 int editUser(User *user, User *in) {
@@ -250,31 +255,40 @@ User *loginPrompt(void) {
   StringLong pass;
   User *logged = NULL;
   int status;
+  int cancelled = 0;
+  int attempt = 1;
 
-  for (int attempt = 1; attempt <= 3; attempt++) {
+  while (attempt <= 3 && logged == NULL && cancelled == 0) {
     printf("\n=== Login (%d/3) ===\n", attempt);
     printf("Username: ");
     status = readLine(user, sizeof(user));
     if (status == -2) {
       printf("Login cancelled.\n");
-      return NULL;
+      cancelled = 1;
     }
 
-    printf("Password: ");
-    status = readLine(pass, sizeof(pass));
-    if (status == -2) {
-      printf("Login cancelled.\n");
-      return NULL;
+    if (cancelled == 0) {
+      printf("Password: ");
+      status = readLine(pass, sizeof(pass));
+      if (status == -2) {
+        printf("Login cancelled.\n");
+        cancelled = 1;
+      }
     }
 
-    logged = loginUser(user, pass);
-    if (logged != NULL) {
-      return logged;
+    if (cancelled == 0) {
+      logged = loginUser(user, pass);
+      if (logged == NULL) {
+        printf("Invalid username or password.\n");
+      }
     }
 
-    printf("Invalid username or password.\n");
+    attempt++;
   }
 
-  printf("Login failed after 3 attempts.\n");
-  return NULL;
+  if (logged == NULL && cancelled == 0) {
+    printf("Login failed after 3 attempts.\n");
+  }
+
+  return logged;
 }

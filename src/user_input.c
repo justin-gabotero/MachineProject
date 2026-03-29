@@ -36,42 +36,38 @@ static int readCsiUKey(int *keyCode, int *modifier) {
   int ch = getchar();
   char seq[32];
   int i = 0;
+  int result = 0;
+  int readFailed = 0;
 
   // CSI-u sequences start with ESC [
-  if (ch != '[') {
-    return 0;
-  }
-
-  // read until the final control character (e.g., 'u')
-  while (i < (int)sizeof(seq) - 1) {
-    ch = getchar();
-    if (ch == EOF) {
-      return 0;
+  if (ch == '[') {
+    // read until the final control character (e.g., 'u')
+    while (i < (int)sizeof(seq) - 1 && readFailed == 0) {
+      ch = getchar();
+      if (ch == EOF) {
+        readFailed = 1;
+      } else {
+        seq[i++] = (char)ch;
+        if (ch >= '@' && ch <= '~') {
+          break;
+        }
+      }
     }
+    seq[i] = '\0';
 
-    seq[i++] = (char)ch;
-    if (ch >= '@' && ch <= '~') {
-      break;
+    // only handle the CSI-u keyboard protocol payload
+    if (readFailed == 0 && i > 0 && seq[i - 1] == 'u') {
+      // supported formats: <key>; <modifier>u OR <key>u
+      *modifier = 1;
+      if (sscanf(seq, "%d;%du", keyCode, modifier) == 2) {
+        result = 1;
+      } else if (sscanf(seq, "%du", keyCode) == 1) {
+        result = 1;
+      }
     }
   }
-  seq[i] = '\0';
 
-  // only handle the CSI-u keyboard protocol payload
-  if (i == 0 || seq[i - 1] != 'u') {
-    return 0;
-  }
-
-  // supported formats: <key>; <modifier>u OR <key>u
-  *modifier = 1;
-  if (sscanf(seq, "%d;%du", keyCode, modifier) == 2) {
-    return 1;
-  }
-
-  if (sscanf(seq, "%du", keyCode) == 1) {
-    return 1;
-  }
-
-  return 0;
+  return result;
 }
 
 /**
@@ -82,38 +78,38 @@ static int readCsiUKey(int *keyCode, int *modifier) {
  * @return 0 on success, -1 on error, -2 if Ctrl+C was detected.
  */
 int readLine(char *buf, int size) {
-  int ch;
+  int ch = 0;
   int idx = 0;
+  int status = -1;
+  int done = 0;
 
   // invalid buffer input
   if (buf == NULL || size <= 1) {
-    return -1;
+    status = -1;
+    done = 1;
   }
 
   // read input one character at a time for custom key handling
-  while (1) {
+  while (done == 0) {
     ch = getchar();
 
     // input stream ended
     if (ch == EOF) {
       buf[0] = '\0';
-      return -1;
-    }
-
-    // end of line reached
-    if (ch == '\n') {
+      status = -1;
+      done = 1;
+    } else if (ch == '\n') {
+      // end of line reached
       buf[idx] = '\0';
-      return 0;
-    }
-
-    // raw ctrl+c support
-    if (ch == 3) {
+      status = 0;
+      done = 1;
+    } else if (ch == 3) {
+      // raw ctrl+c support
       buf[0] = '\0';
-      return -2;
-    }
-
-    // esc
-    if (ch == 27) {
+      status = -2;
+      done = 1;
+    } else if (ch == 27) {
+      // esc
       int keyCode = 0;
       int modifier = 1;
 
@@ -121,11 +117,12 @@ int readLine(char *buf, int size) {
         // ctrl+c
         if (keyCode == 99 && modifier == 5) {
           buf[0] = '\0';
-          return -2;
+          status = -2;
+          done = 1;
         }
 
         // backspace
-        if (keyCode == 127 || keyCode == 8) {
+        if (done == 0 && (keyCode == 127 || keyCode == 8)) {
           if (idx > 0) {
             idx--;
             printf("\b \b");
@@ -133,23 +130,16 @@ int readLine(char *buf, int size) {
           }
         }
       }
-
-      continue;
-    }
-
-    // raw backspace support
-    if (ch == 8 || ch == 127) {
+    } else if (ch == 8 || ch == 127) {
+      // raw backspace support
       if (idx > 0) {
         idx--;
         printf("\b \b");
         fflush(stdout);
       }
-      continue;
-    }
-
-    // escape ':' as "%3A" so colon-delimited file formats won't break if user
-    // input contains colons.
-    if (ch == ':') {
+    } else if (ch == ':') {
+      // escape ':' as "%3A" so colon-delimited file formats won't break if user
+      // input contains colons.
       if (idx < size - 4) {
         buf[idx++] = '%';
         buf[idx++] = '3';
@@ -162,6 +152,8 @@ int readLine(char *buf, int size) {
       }
     }
   }
+
+  return status;
 }
 
 /**
@@ -200,6 +192,7 @@ static int readUserMenuChoice(User *currentUser) {
   char buf[16];
   int choice = -1;
   int status;
+  int result = -1;
 
   printf("\n=== User Menu ===\n");
   printf("1. View Profile\n");
@@ -217,17 +210,14 @@ static int readUserMenuChoice(User *currentUser) {
 
   status = readLine(buf, sizeof(buf));
   if (status == -2) {
-    return -2;
-  }
-  if (status != 0) {
-    return -1;
+    result = -2;
   }
 
-  if (sscanf(buf, "%d", &choice) != 1) {
-    return -1;
+  if (result == -1 && status == 0 && sscanf(buf, "%d", &choice) == 1) {
+    result = choice;
   }
 
-  return choice;
+  return result;
 }
 
 /**

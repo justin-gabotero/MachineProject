@@ -18,51 +18,57 @@ static void xorBytes(const char *input, int len, unsigned char *output) {
 // helper functions for hex encoding/decoding to store XORed passwords in text
 // format
 static int hexValue(char ch) {
+  int value = -1;
+
   if (ch >= '0' && ch <= '9') {
-    return ch - '0';
+    value = ch - '0';
+  } else if (ch >= 'a' && ch <= 'f') {
+    value = 10 + (ch - 'a');
+  } else if (ch >= 'A' && ch <= 'F') {
+    value = 10 + (ch - 'A');
   }
-  if (ch >= 'a' && ch <= 'f') {
-    return 10 + (ch - 'a');
-  }
-  if (ch >= 'A' && ch <= 'F') {
-    return 10 + (ch - 'A');
-  }
-  return -1;
+
+  return value;
 }
 
 // check if a string is a valid hex string (even length and only hex chars)
 static int isHexString(const char *input) {
   int len = (int)strlen(input);
+  int isValid = 1;
 
   if (len == 0 || len % 2 != 0) {
-    return 0;
+    isValid = 0;
   }
 
-  for (int i = 0; i < len; i++) {
+  for (int i = 0; i < len && isValid == 1; i++) {
     if (hexValue(input[i]) < 0) {
-      return 0;
+      isValid = 0;
     }
   }
 
-  return 1;
+  return isValid;
 }
 
 // convert binary data to hex string (output should have enough space for null
 static int hexEncode(const unsigned char *input, int len, char *output,
                      int outputSize) {
   const char hexDigits[] = "0123456789ABCDEF";
+  int status = 0;
 
   if (outputSize < (len * 2) + 1) {
-    return -1;
+    status = -1;
   }
 
-  for (int i = 0; i < len; i++) {
-    output[i * 2] = hexDigits[(input[i] >> 4) & 0x0F];
-    output[i * 2 + 1] = hexDigits[input[i] & 0x0F];
+  if (status == 0) {
+    for (int i = 0; i < len; i++) {
+      output[i * 2] = hexDigits[(input[i] >> 4) & 0x0F];
+      output[i * 2 + 1] = hexDigits[input[i] & 0x0F];
+    }
+
+    output[len * 2] = '\0';
   }
 
-  output[len * 2] = '\0';
-  return 0;
+  return status;
 }
 
 // convert hex string back to binary data, output should have enough space for
@@ -70,24 +76,28 @@ static int hexEncode(const unsigned char *input, int len, char *output,
 static int hexDecode(const char *input, unsigned char *output, int outputSize,
                      int *outLen) {
   int len = (int)strlen(input);
+  int status = 0;
 
   if (len % 2 != 0 || outputSize < len / 2) {
-    return -1;
+    status = -1;
   }
 
-  for (int i = 0; i < len; i += 2) {
+  for (int i = 0; i < len && status == 0; i += 2) {
     int hi = hexValue(input[i]);
     int lo = hexValue(input[i + 1]);
 
     if (hi < 0 || lo < 0) {
-      return -1;
+      status = -1;
+    } else {
+      output[i / 2] = (unsigned char)((hi << 4) | lo);
     }
-
-    output[i / 2] = (unsigned char)((hi << 4) | lo);
   }
 
-  *outLen = len / 2;
-  return 0;
+  if (status == 0) {
+    *outLen = len / 2;
+  }
+
+  return status;
 }
 
 // XOR encrypt the input string and store the result in output
@@ -216,38 +226,56 @@ int usernameExists(String user, int *outExists) {
 // write a new user record to user.txt, password will be XOR encrypted and
 // stored in hex format for text safety.  returns 0 on success, -1 on failure
 int writeUser(User *user) {
-  FILE *userFile;
+  FILE *userFile = NULL;
   unsigned char xorPass[MAX_PASSWORD_LEN];
   char encryptedPass[MAX_HEX_PASS_LEN + 1];
-  int passLen = (int)strlen(user->password);
+  int status = 0;
+  int passLen = 0;
 
-  if (passLen > MAX_PASSWORD_LEN) {
-    printf("Password too long.\n");
-    return -1;
+  if (user == NULL) {
+    status = -1;
   }
 
-  // store HEX(XOR(password)) so the file remains text-safe
-  xorBytes(user->password, passLen, xorPass);
-  if (hexEncode(xorPass, passLen, encryptedPass, sizeof(encryptedPass)) != 0) {
-    printf("Could not encode password.\n");
-    return -1;
+  if (status == 0) {
+    passLen = (int)strlen(user->password);
+    if (passLen > MAX_PASSWORD_LEN) {
+      printf("Password too long.\n");
+      status = -1;
+    }
   }
 
-  // add new user entry to the end of user.txt
-  userFile = fopen("user.txt", "a");
-  if (userFile == NULL) {
-    printf("Could not open user.txt\n");
-    return -1;
+  if (status == 0) {
+    // store HEX(XOR(password)) so the file remains text-safe
+    xorBytes(user->password, passLen, xorPass);
+    if (hexEncode(xorPass, passLen, encryptedPass, sizeof(encryptedPass)) !=
+        0) {
+      printf("Could not encode password.\n");
+      status = -1;
+    }
   }
 
-  // user data format in user.txt:
-  // username:encrypted_password:YYYY-MM-DD:role
-  fprintf(userFile, "%s:%s:%04d-%02d-%02d:%d\n", user->user, encryptedPass,
-          user->creationDate.year, user->creationDate.month,
-          user->creationDate.day, (int)user->role);
+  if (status == 0) {
+    // add new user entry to the end of user.txt
+    userFile = fopen("user.txt", "a");
+    if (userFile == NULL) {
+      printf("Could not open user.txt\n");
+      status = -1;
+    }
+  }
 
-  fclose(userFile);
-  return 0;
+  if (status == 0) {
+    // user data format in user.txt:
+    // username:encrypted_password:YYYY-MM-DD:role
+    fprintf(userFile, "%s:%s:%04d-%02d-%02d:%d\n", user->user, encryptedPass,
+            user->creationDate.year, user->creationDate.month,
+            user->creationDate.day, (int)user->role);
+  }
+
+  if (userFile != NULL) {
+    fclose(userFile);
+  }
+
+  return status;
 }
 
 // update an existing user record in user.txt by matching the username.
