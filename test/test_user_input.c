@@ -12,7 +12,6 @@ typedef struct {
   int passed;
 } TestResult;
 
-
 static void setResult(TestResult *result, const char *name,
                       const char *expected, const char *actual, int passed) {
   if (result != NULL) {
@@ -23,7 +22,6 @@ static void setResult(TestResult *result, const char *name,
   }
 }
 
-
 static void simulateInput(const char *input) {
   FILE *file = fopen(TEST_INPUT_FILE, "w");
   if (file != NULL) {
@@ -33,89 +31,84 @@ static void simulateInput(const char *input) {
   freopen(TEST_INPUT_FILE, "r", stdin);
 }
 
-
-static void testReadIntValid(TestResult *result) {
-  int value = 0;
-  char actual[64];
-
-  simulateInput("42\n");
-  value = readIntInput();
-
-  snprintf(actual, sizeof(actual), "%d", value);
-  setResult(result, "readIntInput: valid integer", "42", actual,
-            value == 42);
-}
-
-static void testReadIntNegative(TestResult *result) {
-  int value = 0;
-  char actual[64];
-
-  simulateInput("-7\n");
-  value = readIntInput();
-
-  snprintf(actual, sizeof(actual), "%d", value);
-  setResult(result, "readIntInput: negative integer", "-7", actual,
-            value == -7);
-}
-
-static void testReadIntInvalid(TestResult *result) {
-  int value = 0;
-  char actual[64];
-
-  simulateInput("abc\n10\n");  // invalid then valid
-  value = readIntInput();
-
-  snprintf(actual, sizeof(actual), "%d", value);
-  setResult(result, "readIntInput: invalid then valid", "10", actual,
-            value == 10);
-}
-
-
-static void testReadStringNormal(TestResult *result) {
+static void testReadLineNormal(TestResult *result) {
   char buffer[64];
-  char actual[64];
+  int status = -1;
+  char actual[128];
 
   simulateInput("Hello World\n");
-  readStringInput(buffer, sizeof(buffer));
+  status = readLine(buffer, sizeof(buffer));
 
-  snprintf(actual, sizeof(actual), "%s", buffer);
-  setResult(result, "readStringInput: normal string",
-            "Hello World", actual,
-            strcmp(buffer, "Hello World") == 0);
+  snprintf(actual, sizeof(actual), "status=%d value=%s", status, buffer);
+  setResult(result, "readLine: normal string", "status=0 value=Hello World",
+            actual, status == 0 && strcmp(buffer, "Hello World") == 0);
 }
 
-static void testReadStringEmpty(TestResult *result) {
+static void testReadLineEmpty(TestResult *result) {
   char buffer[64];
-  char actual[64];
+  int status = -1;
+  char actual[128];
 
   simulateInput("\n");
-  readStringInput(buffer, sizeof(buffer));
+  status = readLine(buffer, sizeof(buffer));
 
-  snprintf(actual, sizeof(actual), "%s", buffer);
-  setResult(result, "readStringInput: empty string",
-            "", actual,
-            strcmp(buffer, "") == 0);
+  snprintf(actual, sizeof(actual), "status=%d value=%s", status, buffer);
+  setResult(result, "readLine: empty string", "status=0 value=", actual,
+            status == 0 && strcmp(buffer, "") == 0);
 }
 
-static void testReadStringLong(TestResult *result) {
-  char buffer[10]; 
+static void testReadLineColonEscaped(TestResult *result) {
+  char buffer[64];
+  int status = -1;
+  char actual[128];
+
+  simulateInput("A:B\n");
+  status = readLine(buffer, sizeof(buffer));
+
+  snprintf(actual, sizeof(actual), "status=%d value=%s", status, buffer);
+  setResult(result, "readLine: colon escaped", "status=0 value=A%3AB", actual,
+            status == 0 && strcmp(buffer, "A%3AB") == 0);
+}
+
+static void testSelectZoneMenuValid(TestResult *result) {
+  int status = -1;
   char actual[64];
 
-  simulateInput("ThisIsAVeryLongInputString\n");
-  readStringInput(buffer, sizeof(buffer));
+  simulateInput("2\n");
+  status = selectZoneMenu();
 
-  snprintf(actual, sizeof(actual), "%s", buffer);
-  setResult(result, "readStringInput: long input truncated",
-            "ThisIsAV", actual,  
-            strncmp(buffer, "ThisIsAV", 8) == 0);
+  snprintf(actual, sizeof(actual), "%d", status);
+  setResult(result, "selectZoneMenu: valid choice", "1", actual, status == 1);
 }
 
+static void testSelectZoneMenuInvalid(TestResult *result) {
+  int status = -1;
+  char actual[64];
+
+  simulateInput("9\n");
+  status = selectZoneMenu();
+
+  snprintf(actual, sizeof(actual), "%d", status);
+  setResult(result, "selectZoneMenu: invalid choice", "-1", actual,
+            status == -1);
+}
+
+static void testSelectDonationSortMenuValid(TestResult *result) {
+  int status = -1;
+  char actual[64];
+
+  simulateInput("3\n");
+  status = selectDonationSortMenu();
+
+  snprintf(actual, sizeof(actual), "%d", status);
+  setResult(result, "selectDonationSortMenu: valid choice", "2", actual,
+            status == 2);
+}
 
 static void printResults(TestResult results[], int count) {
   int passedCount = 0;
 
-  printf("\n===============================================================\n");
-  printf("User Input Test Results\n");
+  printf("\n=== user_input tests ===\n\n");
   printf("===============================================================\n");
   printf("%-3s | %-46s | %-16s | %-16s\n", "#", "Test", "Expected", "Actual");
   printf("----------------------------------------------------------------"
@@ -143,12 +136,12 @@ int main(void) {
   int count = 0;
   int failedCount = 0;
 
-  testReadIntValid(&results[count++]);
-  testReadIntNegative(&results[count++]);
-  testReadIntInvalid(&results[count++]);
-  testReadStringNormal(&results[count++]);
-  testReadStringEmpty(&results[count++]);
-  testReadStringLong(&results[count++]);
+  testReadLineNormal(&results[count++]);
+  testReadLineEmpty(&results[count++]);
+  testReadLineColonEscaped(&results[count++]);
+  testSelectZoneMenuValid(&results[count++]);
+  testSelectZoneMenuInvalid(&results[count++]);
+  testSelectDonationSortMenuValid(&results[count++]);
 
   printResults(results, count);
 
@@ -157,6 +150,8 @@ int main(void) {
       failedCount++;
     }
   }
+
+  remove(TEST_INPUT_FILE);
 
   return failedCount;
 }
