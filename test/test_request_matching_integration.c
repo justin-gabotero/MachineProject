@@ -30,7 +30,9 @@ static int countLoadedRequests(Request list[], int max) {
 }
 
 static void printCaseResult(int index, const char *name, int passed) {
-  printf("Case %d - %s: %s\n", index, name, passed ? "PASS" : "FAIL");
+  printf("%-20s | %-11d | %-35s | %-12s | %-16s | %-16s | %-3s\n",
+         "integration", index, name, "simulated", "PASS",
+         passed ? "PASS" : "FAIL", passed ? "P" : "F");
 }
 
 static int writeInputFile(const char *path, const char *content) {
@@ -200,6 +202,17 @@ int main(void) {
                  donationCountAfterInvalid == donationCountBeforeInvalid);
   case6Passed = (donationStatusLarge == 0 &&
                  donationCountAfterLarge >= donationCountBeforeInvalid + 1);
+
+  printf("\n==================================================================="
+         "============================\n");
+  printf("Request Matching Integration Test Results\n");
+  printf("====================================================================="
+         "==========================\n");
+  printf("%-20s | %-11s | %-35s | %-12s | %-16s | %-16s | %-3s\n",
+         "Function Name", "Test Case #", "Description", "Input",
+         "Expected Output", "Actual Output", "P/F");
+  printf("---------------------------------------------------------------------"
+         "--------------------------\n");
 
   printCaseResult(1, "request creation and persistence", case1Passed);
   printCaseResult(2, "donation creation and persistence", case2Passed);

@@ -13,6 +13,22 @@ typedef struct {
   int passed;
 } TestResult;
 
+static void extractFunctionName(const char *testName, char *out, int outSize) {
+  int i = 0;
+
+  if (out != NULL && outSize > 0) {
+    out[0] = '\0';
+  }
+
+  if (testName != NULL && out != NULL && outSize > 1) {
+    while (testName[i] != '\0' && testName[i] != ':' && i < outSize - 1) {
+      out[i] = testName[i];
+      i++;
+    }
+    out[i] = '\0';
+  }
+}
+
 static int fileExists(const char *path) {
   FILE *file = NULL;
   int exists = 0;
@@ -224,20 +240,25 @@ static void testEditUserDuplicateUsername(TestResult *result) {
 
 static void printResults(TestResult results[], int count) {
   int passedCount = 0;
+  char functionName[64];
 
   printf("\n===============================================================\n");
   printf("User System Test Results\n");
   printf("===============================================================\n");
-  printf("%-3s | %-46s | %-16s | %-16s\n", "#", "Test", "Expected", "Actual");
+  printf("%-20s | %-11s | %-35s | %-12s | %-16s | %-16s | %-3s\n",
+         "Function Name", "Test Case #", "Description", "Input",
+         "Expected Output", "Actual Output", "P/F");
   printf("----------------------------------------------------------------"
-         "---------------\n");
+         "---------------------------------------------\n");
 
   for (int i = 0; i < count; i++) {
-    const char *statusTag = results[i].passed ? "PASS" : "FAIL";
+    const char *statusTag = results[i].passed ? "P" : "F";
 
-    printf("%-3d | %-46s | %-16s | %-16s\n", i + 1, results[i].name,
-           results[i].expected, results[i].actual);
-    printf("      Result: %s\n", statusTag);
+    extractFunctionName(results[i].name, functionName, sizeof(functionName));
+
+    printf("%-20s | %-11d | %-35s | %-12s | %-16s | %-16s | %-3s\n",
+           functionName, i + 1, results[i].name, "-", results[i].expected,
+           results[i].actual, statusTag);
 
     if (results[i].passed) {
       passedCount++;
