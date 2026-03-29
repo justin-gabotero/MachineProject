@@ -36,7 +36,8 @@ static Donation makeValidDonation(void) {
   memset(&donation, 0, sizeof(donation));
   strcpy(donation.donor.user, "supplier01");
   strcpy(donation.foodType, "Bread");
-  strcpy(donation.pickupLocation, "North Gate");
+  donation.zone = ZONE_DLSU_MAIN;
+  strcpy(donation.location, "North Gate");
   donation.donationDate.year = 2026;
   donation.donationDate.month = 3;
   donation.donationDate.day = 29;
@@ -114,7 +115,8 @@ static void testCreateDonationSuccess(TestResult *result) {
   status = createDonation(input, &out);
   copiedFields = strcmp(out.donor.user, input.donor.user) == 0 &&
                  strcmp(out.foodType, input.foodType) == 0 &&
-                 strcmp(out.pickupLocation, input.pickupLocation) == 0 &&
+                 out.zone == input.zone &&
+                 strcmp(out.location, input.location) == 0 &&
                  out.quantity == input.quantity && out.weight == input.weight;
 
   passed = status == 0 && copiedFields == 1;
@@ -200,9 +202,9 @@ static void testLoadDonationSortAndFilter(TestResult *result) {
 
   file = fopen(TEST_DONATION_FILE, "w");
   if (file != NULL) {
-    fprintf(file, "alice:Rice:2:2026-03-01:2026-03-05:1200:Gate A\n");
-    fprintf(file, "bad:Milk:0:2026-03-08:2026-03-10:500:Gate B\n");
-    fprintf(file, "charlie:Bread:4:2026-03-25:2026-03-29:2500:Gate C\n");
+    fprintf(file, "alice:Rice:2:2026-03-01:2026-03-05:1200:0:Gate A\n");
+    fprintf(file, "bad:Milk:0:2026-03-08:2026-03-10:500:1:Gate B\n");
+    fprintf(file, "charlie:Bread:4:2026-03-25:2026-03-29:2500:2:Gate C\n");
     fprintf(file, "malformed line\n");
     fclose(file);
     writeOk = 1;

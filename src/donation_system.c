@@ -8,12 +8,45 @@
 
 #define MAX_DONATIONS 512
 
+const char *getZoneName(int zone) {
+  const char *status = NULL;
+
+  if (zone >= 0 && zone < NUM_ZONES) {
+    switch (zone) {
+    case ZONE_DLSU_MAIN:
+      status = "DLSU Main";
+      break;
+    case ZONE_DLSU_SFC:
+      status = "DLSU SFC";
+      break;
+    case ZONE_TAFT:
+      status = "Taft Avenue";
+      break;
+    case ZONE_MALATE:
+      status = "Malate";
+      break;
+    case ZONE_PACO:
+      status = "Paco";
+      break;
+    case ZONE_ERMITA:
+      status = "Ermita";
+      break;
+    default:
+      status = "Unknown";
+      break;
+    }
+  }
+
+  return status;
+}
+
 static int isLoadedDonation(const Donation *donation) {
   int status = 0;
 
   if (donation != NULL) {
     if (strlen(donation->donor.user) > 0 && strlen(donation->foodType) > 0 &&
-        strlen(donation->pickupLocation) > 0 && donation->quantity > 0 &&
+        donation->zone >= 0 && donation->zone < NUM_ZONES &&
+        strlen(donation->location) > 0 && donation->quantity > 0 &&
         donation->weight > 0) {
       status = 1;
     }
@@ -40,10 +73,14 @@ static void printDonationEntry(const Donation *donation, int index) {
     printf("   Expiration Date: ");
     printDate(&donation->expirationDate);
     printf("\n");
-    printf("   Pickup Location: %s\n", donation->pickupLocation);
+    printf("   Zone: %s\n", getZoneName(donation->zone));
+    printf("   Specific Location: %s\n", donation->location);
   }
 }
 
+/**
+ * @brief Displays a list of all donations in the system with their details.
+ */
 void viewAllDonationsList(void) {
   Donation donations[MAX_DONATIONS];
   int shown = 0;
@@ -63,6 +100,11 @@ void viewAllDonationsList(void) {
   }
 }
 
+/**
+ * @brief Displays a list of donations made by the current user.
+ *
+ * @param currentUser
+ */
 void viewOwnDonations(const User *currentUser) {
   Donation donations[MAX_DONATIONS];
   int shown = 0;
@@ -83,6 +125,13 @@ void viewOwnDonations(const User *currentUser) {
   }
 }
 
+/**
+ * @brief Handles the flow for creating a new donation, including prompting the
+ * user for details and validating the input before saving the donation record.
+ *
+ * @param currentUser Pointer to the logged-in user for creating the donation.
+ * @return int
+ */
 int createDonationFlow(const User *currentUser) {
   Donation input;
   Donation validated;
@@ -194,10 +243,21 @@ int addDonationPrompt(User donor, Donation *outDonation) {
   }
 
   if (status == 0) {
-    // Ask the user for the pickup location for the food they want to donate
-    printf("Pickup Location: ");
-    status = readLine(temp.pickupLocation, sizeof(temp.pickupLocation));
-    if (status != 0 || strlen(temp.pickupLocation) == 0) {
+    // Ask the user to select a zone from the menu
+    status = selectZoneMenu();
+    if (status >= 0 && status < NUM_ZONES) {
+      temp.zone = status;
+      status = 0;
+    } else {
+      status = -1;
+    }
+  }
+
+  if (status == 0) {
+    // Ask the user for the specific location details
+    printf("Specific address/location: ");
+    status = readLine(temp.location, sizeof(temp.location));
+    if (status != 0 || strlen(temp.location) == 0) {
       status = -1;
     }
   }
@@ -230,7 +290,8 @@ int createDonation(Donation in, Donation *out) {
 
   if (status == 0 &&
       (in.weight <= 0 || in.quantity <= 0 || strlen(in.foodType) == 0 ||
-       strlen(in.donor.user) == 0 || strlen(in.pickupLocation) == 0)) {
+       strlen(in.donor.user) == 0 || in.zone < 0 || in.zone >= NUM_ZONES ||
+       strlen(in.location) == 0)) {
     status = -1;
   }
 
@@ -296,14 +357,14 @@ static int compareDonationDateDesc(const void *left, const void *right) {
 void writeDonation(Donation donation) {
   FILE *file = fopen("donation.txt", "a");
   if (file != NULL) {
-    // username:foodType:quantity:donationDate:expirationDate:weight:pickupLocation
-    // example line: john_doe:bread:2:2024-06-01:2024-06-05:500:123 Main St
-    fprintf(file, "%s:%s:%d:%d-%02d-%02d:%d-%02d-%02d:%d:%s\n",
+    // username:foodType:quantity:donationDate:expirationDate:weight:zone:location
+    // example line: john_doe:bread:2:2024-06-01:2024-06-05:500:0:North Gate
+    fprintf(file, "%s:%s:%d:%d-%02d-%02d:%d-%02d-%02d:%d:%d:%s\n",
             donation.donor.user, donation.foodType, donation.quantity,
             donation.donationDate.year, donation.donationDate.month,
             donation.donationDate.day, donation.expirationDate.year,
             donation.expirationDate.month, donation.expirationDate.day,
-            donation.weight, donation.pickupLocation);
+            donation.weight, donation.zone, donation.location);
 
     fclose(file);
   } else {
@@ -332,7 +393,8 @@ void loadDonation(Donation *list, int maxCount) {
       list[i].donor.creationDate.day = 0;
       list[i].donor.role = (Role)-1;
       list[i].foodType[0] = '\0';
-      list[i].pickupLocation[0] = '\0';
+      list[i].zone = -1;
+      list[i].location[0] = '\0';
       list[i].donationDate.year = 0;
       list[i].donationDate.month = 0;
       list[i].donationDate.day = 0;
@@ -358,7 +420,8 @@ void loadDonation(Donation *list, int maxCount) {
         parsed.donor.creationDate.day = 0;
         parsed.donor.role = (Role)-1;
         parsed.foodType[0] = '\0';
-        parsed.pickupLocation[0] = '\0';
+        parsed.zone = -1;
+        parsed.location[0] = '\0';
         parsed.donationDate.year = 0;
         parsed.donationDate.month = 0;
         parsed.donationDate.day = 0;
@@ -369,14 +432,15 @@ void loadDonation(Donation *list, int maxCount) {
         parsed.quantity = 0;
 
         matched =
-            sscanf(line, "%31[^:]:%31[^:]:%d:%d-%d-%d:%d-%d-%d:%d:%127[^\n]",
+            sscanf(line, "%31[^:]:%31[^:]:%d:%d-%d-%d:%d-%d-%d:%d:%d:%127[^\n]",
                    parsed.donor.user, parsed.foodType, &parsed.quantity,
                    &parsed.donationDate.year, &parsed.donationDate.month,
                    &parsed.donationDate.day, &parsed.expirationDate.year,
                    &parsed.expirationDate.month, &parsed.expirationDate.day,
-                   &parsed.weight, parsed.pickupLocation);
+                   &parsed.weight, &parsed.zone, parsed.location);
 
-        if (matched == 11 && parsed.quantity > 0 && parsed.weight > 0 &&
+        if (matched == 12 && parsed.quantity > 0 && parsed.weight > 0 &&
+            parsed.zone >= 0 && parsed.zone < NUM_ZONES &&
             parsed.donationDate.year >= 1970 &&
             parsed.donationDate.year <= 2100 &&
             parsed.donationDate.month >= 1 && parsed.donationDate.month <= 12 &&
@@ -394,12 +458,6 @@ void loadDonation(Donation *list, int maxCount) {
       fclose(file);
     }
 
-    // WARN: not sure if we're allowed to use qsort from the standard library,
-    // if not we can implement our own.
-
-    // If more than one donation record was loaded, sort the list by donation
-    // date in descending order (most recent first) using the
-    // compareDonationDateDesc function as the comparison function for qsort.
     if (loadedCount > 1) {
       qsort(list, (size_t)loadedCount, sizeof(Donation),
             compareDonationDateDesc);

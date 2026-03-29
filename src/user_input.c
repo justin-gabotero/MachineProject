@@ -2,6 +2,7 @@
 #include "user_system.h"
 
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 
 static int isValidRole(Role role) {
@@ -177,6 +178,44 @@ int getCurrentDate(Date *date) {
         status = 0;
       }
     }
+  }
+
+  return status;
+}
+
+/**
+ * @brief Displays zone selection menu and returns the selected zone.
+ * @return Zone enum value (0-5) on success, -1 on invalid input.
+ */
+int selectZoneMenu(void) {
+  int choice = 0;
+  char buf[32];
+  int status = 0;
+  int selection = -1;
+
+  printf("\nSelect location zone:\n");
+  printf("[1] DLSU Main\n");
+  printf("[2] DLSU SFC\n");
+  printf("[3] Taft Avenue\n");
+  printf("[4] Malate\n");
+  printf("[5] Paco\n");
+  printf("[6] Ermita\n");
+  printf("Choice: ");
+
+  status = readLine(buf, sizeof(buf));
+
+  if (status == 0 && strlen(buf) > 0) {
+    if (sscanf(buf, "%d", &choice) == 1 && choice >= 1 && choice <= NUM_ZONES) {
+      selection = choice - 1; // Convert to 0-based index
+    } else {
+      status = -1;
+    }
+  } else {
+    status = -1;
+  }
+
+  if (status == 0) {
+    status = selection;
   }
 
   return status;
