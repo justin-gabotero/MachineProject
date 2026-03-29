@@ -62,6 +62,7 @@ int main(void) {
   int donationStatusInvalid = -1;
   int donationStatusLarge = -1;
   int donationStatusNonNumeric = -1;
+  int requestStatusAccept = -1;
   int donationCount = 0;
   int requestCount = 0;
   int donationCountAfterInitial = 0;
@@ -70,6 +71,8 @@ int main(void) {
   int requestCountAfterInvalid = 0;
   int donationCountAfterLarge = 0;
   int donationCountAfterNonNumeric = 0;
+  int donationCountBeforeAccept = 0;
+  int donationCountAfterAccept = 0;
   int case1Passed = 0;
   int case2Passed = 0;
   int case3Passed = 0;
@@ -77,8 +80,9 @@ int main(void) {
   int case5Passed = 0;
   int case6Passed = 0;
   int case7Passed = 0;
+  int case8Passed = 0;
   int passedCount = 0;
-  int totalCases = 7;
+  int totalCases = 8;
   int requestCountBeforeInvalid = 0;
   int donationCountBeforeInvalid = 0;
   int donationCountBeforeNonNumeric = 0;
@@ -134,6 +138,26 @@ int main(void) {
   requestCount = countLoadedRequests(requests, MAX_ITEMS);
   donationCountAfterInitial = donationCount;
   requestCountAfterInitial = requestCount;
+
+  donationCountBeforeAccept = donationCountAfterInitial;
+
+  if (writeInputFile("req_accept_input.txt", "2\n1\n") != 0) {
+    printf("FAIL: cannot create req_accept_input.txt\n");
+    return 1;
+  }
+
+  if (freopen("req_accept_input.txt", "r", stdin) == NULL) {
+    printf("FAIL: cannot redirect stdin for accept request flow\n");
+    return 1;
+  }
+
+  requestStatus = createRequestFlow(&receiver);
+  requestStatusAccept = requestStatus;
+  loadDonation(donations, MAX_ITEMS);
+  loadRequest(requests, MAX_ITEMS);
+  donationCount = countLoadedDonations(donations, MAX_ITEMS);
+  requestCount = countLoadedRequests(requests, MAX_ITEMS);
+  donationCountAfterAccept = donationCount;
 
   requestCountBeforeInvalid = requestCount;
   donationCountBeforeInvalid = donationCount;
@@ -233,6 +257,8 @@ int main(void) {
                  donationCountAfterLarge >= donationCountBeforeInvalid + 1);
   case7Passed = (donationStatusNonNumeric == -1 &&
                  donationCountAfterNonNumeric == donationCountBeforeNonNumeric);
+  case8Passed = (requestStatusAccept == 0 &&
+                 donationCountAfterAccept == donationCountBeforeAccept - 1);
 
   printf("\n==================================================================="
          "============================\n");
@@ -259,6 +285,8 @@ int main(void) {
                   "food=Canned,qty=1000000,wt=2000000000,zone=5", case6Passed);
   printCaseResult(7, "non-numeric quantity rejected",
                   "food=2395029gheiorgpa,qty=voehso", case7Passed);
+  printCaseResult(8, "accept matched donation consumes entry",
+                  "zoneChoice=2,acceptChoice=1", case8Passed);
 
   if (case1Passed) {
     passedCount++;
@@ -281,12 +309,16 @@ int main(void) {
   if (case7Passed) {
     passedCount++;
   }
+  if (case8Passed) {
+    passedCount++;
+  }
 
   printf("Summary: %d/%d tests passed\n", passedCount, totalCases);
 
   remove("req_input.txt");
   remove("don_input.txt");
   remove("req_invalid_input.txt");
+  remove("req_accept_input.txt");
   remove("don_invalid_input.txt");
   remove("don_large_input.txt");
   remove("don_non_numeric_input.txt");

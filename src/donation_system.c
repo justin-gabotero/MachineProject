@@ -105,6 +105,40 @@ static int compareDonationDateDesc(const void *left, const void *right);
 static int compareDonationFoodTypeAsc(const void *left, const void *right);
 static int compareDonationDonorNameAsc(const void *left, const void *right);
 
+static int rewriteDonationsExcludingIndex(Donation donations[],
+                                          int donationCount, int excludeIndex) {
+  FILE *file = NULL;
+  int status = -1;
+
+  if (donations != NULL && donationCount > 0 && excludeIndex >= 0 &&
+      excludeIndex < donationCount) {
+    file = fopen("donation.txt", "w");
+    if (file != NULL) {
+      status = 0;
+
+      for (int i = 0; i < donationCount; i++) {
+        if (i != excludeIndex && isLoadedDonation(&donations[i])) {
+          if (fprintf(file, "%s:%s:%d:%d-%02d-%02d:%d-%02d-%02d:%d:%d:%s\n",
+                      donations[i].donor.user, donations[i].foodType,
+                      donations[i].quantity, donations[i].donationDate.year,
+                      donations[i].donationDate.month,
+                      donations[i].donationDate.day,
+                      donations[i].expirationDate.year,
+                      donations[i].expirationDate.month,
+                      donations[i].expirationDate.day, donations[i].weight,
+                      donations[i].zone, donations[i].location) < 0) {
+            status = -1;
+          }
+        }
+      }
+
+      fclose(file);
+    }
+  }
+
+  return status;
+}
+
 /**
  * @brief Displays a list of all donations in the system with sort options.
  */
@@ -900,19 +934,60 @@ int zoneMatch(enum Zone donationZone, enum Zone recipientZone) {
  */
 void matchingZoneLocation(Donation donations[], int donationCount,
                           Request request) {
-  // Implementation for matching zone locations
   enum Zone requestZone = request.zone;
   int found = 0;
+  int matchCount = 0;
+  int matchedIndices[MAX_DONATIONS];
+  char choiceBuf[32];
+  int readStatus = -1;
+  int selectedMatch = -1;
+  int selectedDonationIndex = -1;
+  int consumeStatus = -1;
+
+  for (int i = 0; i < MAX_DONATIONS; i++) {
+    matchedIndices[i] = -1;
+  }
 
   printf("Matching donations for %s:\n", request.requester.user);
   for (int i = 0; i < donationCount; i++) {
     if (isLoadedDonation(&donations[i]) &&
         zoneMatch(donations[i].zone, requestZone)) {
-      printDonationEntry(&donations[i], i + 1);
+      matchedIndices[matchCount] = i;
+      matchCount++;
+      printDonationEntry(&donations[i], matchCount);
       found = 1;
     }
   }
+
   if (found == 0) {
     printf("No matching donations found for the requester's location.\n");
+  }
+
+  if (found == 1) {
+    printf("Enter match number to accept (0 to skip): ");
+    readStatus = readLine(choiceBuf, sizeof(choiceBuf));
+    printf("\n");
+
+    if (readStatus == 0 && sscanf(choiceBuf, "%d", &selectedMatch) == 1) {
+      if (selectedMatch == 0) {
+        printf("No donation accepted.\n");
+      } else if (selectedMatch >= 1 && selectedMatch <= matchCount) {
+        selectedDonationIndex = matchedIndices[selectedMatch - 1];
+        consumeStatus = rewriteDonationsExcludingIndex(donations, donationCount,
+                                                       selectedDonationIndex);
+
+        if (consumeStatus == 0) {
+          memset(&donations[selectedDonationIndex], 0, sizeof(Donation));
+          donations[selectedDonationIndex].zone = -1;
+          printf("Donation accepted and consumed.\n");
+        } else {
+          printf("Could not consume selected donation.\n");
+        }
+      } else {
+        printf("Invalid selection. No donation accepted.\n");
+      }
+    } else {
+      printf("No donation accepted.\n");
+    }
   }
 }
