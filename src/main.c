@@ -10,7 +10,7 @@
 /**
  * @brief Shows the menu for login/registration
  *
- * @return int 0 on normal exit, -1 on error, -2 on Ctrl+C detected
+ * @return int 0 on normal exit, -1 on error, -2 on `Ctrl+C` detected
  */
 static int readMenuChoice(void) {
   char buf[16];
