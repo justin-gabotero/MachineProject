@@ -99,8 +99,10 @@ static void xorEncrypt(char *input, char *output) {
 
 // read user data from user.txt and check if the provided username and password
 int getUser(String user, StringLong pass, User *out) {
+  int status = -2;
+  int keepSearching = 1;
   char buf[USER_LINE_BUF_SIZE];
-  FILE *userFile;
+  FILE *userFile = NULL;
 
   String parsedUser;
   Date parsedDate;
@@ -110,78 +112,105 @@ int getUser(String user, StringLong pass, User *out) {
   StringLong decryptedPass;
   unsigned char xorPass[MAX_PASSWORD_LEN];
 
-  userFile = fopen("user.txt", "r");
-  if (userFile == NULL) {
-    return -1;
+  if (user == NULL || pass == NULL || out == NULL) {
+    status = -1;
   }
 
-  // user data format stored in user.txt, one user per line
-  // username:encrypted_password:YYYY-MM-DD:role
-  while (fgets(buf, sizeof(buf), userFile)) {
-    int parsed = sscanf(buf, "%31[^:]:%254[^:]:%d-%d-%d:%d", parsedUser,
-                        encryptedPass, &parsedDate.year, &parsedDate.month,
-                        &parsedDate.day, (int *)&parsedRole);
-    if (parsed != 6) {
-      continue;
-    }
-
-    // new format: HEX(XOR(raw_password)).
-    if (isHexString(encryptedPass)) {
-      int xorLen = 0;
-      if (hexDecode(encryptedPass, xorPass, sizeof(xorPass), &xorLen) != 0) {
-        continue;
-      }
-
-      for (int i = 0; i < xorLen; i++) {
-        decryptedPass[i] = (char)(xorPass[i] ^ XOR_KEY);
-      }
-      decryptedPass[xorLen] = '\0';
-    } else {
-      // backward compatibility for existing raw XOR entries.  (NOTE: not sure
-      // if i should keep this later on.)
-      xorEncrypt(encryptedPass, decryptedPass);
-    }
-
-    // compare if input username and password match
-    if (strcmp(parsedUser, user) == 0 && strcmp(decryptedPass, pass) == 0) {
-      strcpy(out->user, parsedUser);
-      out->creationDate = parsedDate;
-      out->role = parsedRole;
-
-      fclose(userFile);
-      return (int)out->role;
+  if (status == -2) {
+    userFile = fopen("user.txt", "r");
+    if (userFile == NULL) {
+      status = -1;
     }
   }
 
-  fclose(userFile);
-  return -1;
+  if (status == -2) {
+    // user data format stored in user.txt, one user per line
+    // username:encrypted_password:YYYY-MM-DD:role
+    while (keepSearching == 1 && fgets(buf, sizeof(buf), userFile) != NULL) {
+      int parsed = sscanf(buf, "%31[^:]:%254[^:]:%d-%d-%d:%d", parsedUser,
+                          encryptedPass, &parsedDate.year, &parsedDate.month,
+                          &parsedDate.day, (int *)&parsedRole);
+      int decoded = 1;
+
+      if (parsed == 6) {
+        // new format: HEX(XOR(raw_password)).
+        if (isHexString(encryptedPass)) {
+          int xorLen = 0;
+          if (hexDecode(encryptedPass, xorPass, sizeof(xorPass), &xorLen) ==
+              0) {
+            for (int i = 0; i < xorLen; i++) {
+              decryptedPass[i] = (char)(xorPass[i] ^ XOR_KEY);
+            }
+            decryptedPass[xorLen] = '\0';
+          } else {
+            decoded = 0;
+          }
+        } else {
+          // backward compatibility for existing raw XOR entries.
+          xorEncrypt(encryptedPass, decryptedPass);
+        }
+
+        // compare if input username and password match
+        if (decoded == 1 && strcmp(parsedUser, user) == 0 &&
+            strcmp(decryptedPass, pass) == 0) {
+          strcpy(out->user, parsedUser);
+          out->creationDate = parsedDate;
+          out->role = parsedRole;
+          status = 0;
+          keepSearching = 0;
+        }
+      }
+    }
+  }
+
+  if (userFile != NULL) {
+    fclose(userFile);
+  }
+
+  return status;
 }
 
 // check if a username already exists in user.txt (used for registration to
 // prevent duplicates)
-int usernameExists(String user) {
+int usernameExists(String user, int *outExists) {
+  int status = -1;
+  int inputsValid = 0;
   StringLong buf;
-  FILE *userFile;
+  FILE *userFile = NULL;
   String parsedUser;
 
-  // open user database for read checks
-  userFile = fopen("user.txt", "r");
-  if (userFile == NULL) {
-    return 0;
+  if (user != NULL && outExists != NULL) {
+    inputsValid = 1;
   }
 
-  // each line starts with username before the first ':'
-  while (fgets(buf, sizeof(buf), userFile)) {
-    // compare parsed username with requested username
-    if (sscanf(buf, "%31[^:]", parsedUser) == 1 &&
-        strcmp(parsedUser, user) == 0) {
-      fclose(userFile);
-      return 1;
+  if (inputsValid == 1) {
+    *outExists = 0;
+    userFile = fopen("user.txt", "r");
+
+    if (userFile == NULL) {
+      // Missing file means no records yet; treat as a successful check.
+      status = 0;
     }
   }
 
-  fclose(userFile);
-  return 0;
+  if (userFile != NULL) {
+    status = 0;
+
+    // each line starts with username before the first ':'
+    while (fgets(buf, sizeof(buf), userFile) != NULL && *outExists == 0) {
+      // compare parsed username with requested username
+      if (sscanf(buf, "%31[^:]", parsedUser) == 1 &&
+          strcmp(parsedUser, user) == 0) {
+        *outExists = 1;
+      }
+    }
+  }
+
+  if (userFile != NULL) {
+    fclose(userFile);
+  }
+
+  return status;
 }
 
 // write a new user record to user.txt, password will be XOR encrypted and

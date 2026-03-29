@@ -30,6 +30,7 @@ int registerUser(User *user);
 // Prompts the user for login credentials and attempts to log them in.
 int registerPrompt(void);
 // Logs in a user with the provided username and password, returning a User
+// pointer on success or NULL on failure.
 User *loginUser(String user, StringLong pass);
 // Prompts the user for login credentials and attempts to log them in, returning
 // a User pointer on success or NULL on failure.
@@ -37,7 +38,7 @@ User *loginUser(String user, StringLong pass);
 // pointer.
 User *loginPrompt(void);
 // Prompts the user for their username and initiates the password recovery
-// process. Returns 0 on success and -1 on failure.
+// process. Returns 0 on success, -1 on failure, and -2 when cancelled.
 int recoverPasswordPrompt(void);
 // Resets the user's password to the new password provided.
 int resetUserPassword(User *user, StringLong newPass);

@@ -33,6 +33,7 @@ static int readRole(Role *outRole) {
 
 int editUser(User *user, User *in) {
   int status = 0;
+  int exists = 0;
 
   if (user == NULL || in == NULL) {
     status = -1;
@@ -42,9 +43,12 @@ int editUser(User *user, User *in) {
     status = -1;
   }
 
-  if (status == 0 && strcmp(user->user, in->user) != 0 &&
-      usernameExists(in->user)) {
-    status = -2;
+  if (status == 0 && strcmp(user->user, in->user) != 0) {
+    if (usernameExists(in->user, &exists) != 0) {
+      status = -1;
+    } else if (exists == 1) {
+      status = -2;
+    }
   }
 
   if (status == 0) {
@@ -58,11 +62,17 @@ int editUser(User *user, User *in) {
 }
 
 int registerUser(User *user) {
+  int exists = 0;
   int status = -1;
-  if (usernameExists(user->user)) {
-    return status;
+
+  if (user != NULL) {
+    if (usernameExists(user->user, &exists) == 0) {
+      if (exists == 0) {
+        status = writeUser(user);
+      }
+    }
   }
-  status = writeUser(user);
+
   return status;
 }
 
@@ -71,6 +81,7 @@ int registerPrompt(void) {
   StringLong confirm;
   int status = 0;
   int input = 0;
+  int exists = 0;
 
   newUser.user[0] = '\0';
   newUser.password[0] = '\0';
@@ -91,7 +102,12 @@ int registerPrompt(void) {
       status = -1;
       break;
     }
-    if (usernameExists(newUser.user)) {
+    if (usernameExists(newUser.user, &exists) != 0) {
+      printf("Could not validate username availability.\n");
+      status = -1;
+      break;
+    }
+    if (exists == 1) {
       printf("Username already exists.\n");
       status = -1;
       break;
@@ -150,9 +166,9 @@ int registerPrompt(void) {
 User *loginUser(String user, StringLong pass) {
   static User logged;
   User *result = NULL;
-  int role = getUser(user, pass, &logged);
+  int status = getUser(user, pass, &logged);
 
-  if (role > -1) {
+  if (status == 0) {
     strcpy(logged.password, pass);
     result = &logged;
   }
@@ -165,22 +181,32 @@ int recoverPasswordPrompt(void) {
   StringLong newPass;
   User tempUser;
   int status = -1, input;
+  int exists = 0;
+  int existsStatus = 0;
 
   printf("\n=== Recover Password ===\n");
   printf("Username: ");
   input = readLine(user, sizeof(user));
   if (input == -2) {
     printf("Password recovery cancelled.\n");
-    status = 1;
+    status = -2;
   }
 
-  if (status == -1 && usernameExists(user)) {
+  if (status == -1) {
+    existsStatus = usernameExists(user, &exists);
+    if (existsStatus != 0) {
+      printf("Could not validate username.\n");
+      status = -1;
+    }
+  }
+
+  if (status == -1 && existsStatus == 0 && exists == 1) {
     printf("User %s found.\n", user);
     printf("Enter new password: ");
     input = readLine(newPass, sizeof(newPass));
     if (input == -2) {
       printf("Password recovery cancelled.\n");
-      status = 1;
+      status = -2;
     }
 
     if (status == -1) {
@@ -193,7 +219,7 @@ int recoverPasswordPrompt(void) {
         status = -1;
       }
     }
-  } else if (status == -1) {
+  } else if (status == -1 && existsStatus == 0 && exists == 0) {
     printf("Username not found.\n");
   }
 

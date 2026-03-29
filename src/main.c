@@ -25,7 +25,7 @@ static int readMenuChoice(void) {
 
   status = readLine(buf, sizeof(buf));
   if (status == -2) {
-    return 3;
+    return -2;
   }
   if (status != 0) {
     return -1;
@@ -49,6 +49,10 @@ int main(void) {
     choice = readMenuChoice();
 
     switch (choice) {
+    case -2:
+      printf("Exiting...\n");
+      shouldExit = 1;
+      break;
     case 1: {
       // Attempt to log in the user. If successful, it welcomes the user and
       // displays their role. If the login fails, it breaks out of the loop and
