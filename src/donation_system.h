@@ -58,6 +58,7 @@ void loadRequest(Request list[], int maxCount);
 void viewOwnDonations(const User *currentUser);
 void viewOwnRequests(const User *currentUser);
 void viewAllDonationsList(void);
+void searchDonations(void);
 double computeDonationWasteReduction(Donation donation);
 double computeTotalWasteReduction(Donation list[], int count);
 void computeMonthlyStats(Donation list[], int count, int year, int month);

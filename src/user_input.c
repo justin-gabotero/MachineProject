@@ -245,6 +245,7 @@ static int readUserMenuChoice(User *currentUser) {
   }
   printf("4. View All Donations\n");
   printf("5. Logout\n");
+  printf("6. Search Donations\n");
   printf("Choice: ");
 
   status = readLine(buf, sizeof(buf));
@@ -316,6 +317,9 @@ int userMenu(User *currentUser) {
     case 5:
       printf("Logging out...\n");
       shouldLogout = 1;
+      break;
+    case 6:
+      searchDonations();
       break;
     default:
       printf("Invalid choice. Please try again.\n");

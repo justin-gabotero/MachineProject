@@ -1,6 +1,7 @@
 #include "donation_system.h"
 #include "user_input.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -105,6 +106,77 @@ static int compareDonationDateDesc(const void *left, const void *right);
 static int compareDonationFoodTypeAsc(const void *left, const void *right);
 static int compareDonationDonorNameAsc(const void *left, const void *right);
 
+static void toLowerCopy(const char *src, char *dst, int dstSize) {
+  int i = 0;
+
+  if (src != NULL && dst != NULL && dstSize > 0) {
+    while (i < dstSize - 1 && src[i] != '\0') {
+      dst[i] = (char)tolower((unsigned char)src[i]);
+      i++;
+    }
+    dst[i] = '\0';
+  }
+}
+
+static int containsIgnoreCase(const char *text, const char *pattern) {
+  char lowerText[256];
+  char lowerPattern[128];
+  int matches = 0;
+
+  lowerText[0] = '\0';
+  lowerPattern[0] = '\0';
+
+  if (text != NULL && pattern != NULL) {
+    toLowerCopy(text, lowerText, sizeof(lowerText));
+    toLowerCopy(pattern, lowerPattern, sizeof(lowerPattern));
+
+    if (strlen(lowerPattern) == 0 || strstr(lowerText, lowerPattern) != NULL) {
+      matches = 1;
+    }
+  }
+
+  return matches;
+}
+
+static int dateToInt(Date date) {
+  return (date.year * 10000) + (date.month * 100) + date.day;
+}
+
+static int matchesSearchFilters(const Donation *donation,
+                                const char *foodTypeFilter,
+                                const char *locationFilter, int useDateRange,
+                                Date startDate, Date endDate) {
+  int matches = 0;
+  int foodMatches = 0;
+  int locationMatches = 0;
+  int dateMatches = 0;
+
+  if (donation != NULL && isLoadedDonation(donation)) {
+    foodMatches = containsIgnoreCase(donation->foodType, foodTypeFilter);
+
+    locationMatches =
+        containsIgnoreCase(donation->location, locationFilter) ||
+        containsIgnoreCase(getZoneName(donation->zone), locationFilter);
+
+    if (useDateRange == 0) {
+      dateMatches = 1;
+    } else {
+      int donationExp = dateToInt(donation->expirationDate);
+      int startInt = dateToInt(startDate);
+      int endInt = dateToInt(endDate);
+      if (donationExp >= startInt && donationExp <= endInt) {
+        dateMatches = 1;
+      }
+    }
+
+    if (foodMatches == 1 && locationMatches == 1 && dateMatches == 1) {
+      matches = 1;
+    }
+  }
+
+  return matches;
+}
+
 static int rewriteDonationsExcludingIndex(Donation donations[],
                                           int donationCount, int excludeIndex) {
   FILE *file = NULL;
@@ -191,6 +263,84 @@ void viewAllDonationsList(void) {
         printDonationEntry(&sorted[i], shown);
       }
     }
+  }
+}
+
+/**
+ * @brief Searches donations using food type, location, and expiration date
+ * range filters.
+ */
+void searchDonations(void) {
+  Donation donations[MAX_DONATIONS];
+  String foodTypeFilter;
+  StringLong locationFilter;
+  String dateStartBuf;
+  String dateEndBuf;
+  Date startDate;
+  Date endDate;
+  int shown = 0;
+  int inputStatus = 0;
+  int useDateRange = 0;
+
+  foodTypeFilter[0] = '\0';
+  locationFilter[0] = '\0';
+  dateStartBuf[0] = '\0';
+  dateEndBuf[0] = '\0';
+  startDate.year = 0;
+  startDate.month = 0;
+  startDate.day = 0;
+  endDate.year = 0;
+  endDate.month = 0;
+  endDate.day = 0;
+
+  loadDonation(donations, MAX_DONATIONS);
+
+  printf("\n=== Search Donations ===\n");
+  printf("Food type contains (leave blank for any): ");
+  inputStatus = readLine(foodTypeFilter, sizeof(foodTypeFilter));
+  if (inputStatus != 0) {
+    foodTypeFilter[0] = '\0';
+  }
+
+  printf("Location contains (zone or address, blank for any): ");
+  inputStatus = readLine(locationFilter, sizeof(locationFilter));
+  if (inputStatus != 0) {
+    locationFilter[0] = '\0';
+  }
+
+  printf("Start expiration date YYYY-MM-DD (blank for any): ");
+  inputStatus = readLine(dateStartBuf, sizeof(dateStartBuf));
+  if (inputStatus == 0 && strlen(dateStartBuf) > 0) {
+    if (sscanf(dateStartBuf, "%d-%d-%d", &startDate.year, &startDate.month,
+               &startDate.day) == 3) {
+      printf("End expiration date YYYY-MM-DD: ");
+      inputStatus = readLine(dateEndBuf, sizeof(dateEndBuf));
+      if (inputStatus == 0 && sscanf(dateEndBuf, "%d-%d-%d", &endDate.year,
+                                     &endDate.month, &endDate.day) == 3) {
+        if (dateToInt(startDate) <= dateToInt(endDate)) {
+          useDateRange = 1;
+        } else {
+          printf("Invalid date range; ignoring expiration date filter.\n");
+        }
+      } else {
+        printf("Invalid end date; ignoring expiration date filter.\n");
+      }
+    } else {
+      printf("Invalid start date; ignoring expiration date filter.\n");
+    }
+  }
+
+  printf("\n=== Search Results ===\n");
+  for (int i = 0; i < MAX_DONATIONS; i++) {
+    if (matchesSearchFilters(&donations[i], foodTypeFilter, locationFilter,
+                             useDateRange, startDate, endDate) == 1) {
+      shown++;
+      printDonationEntry(&donations[i], shown);
+    }
+  }
+
+  if (shown == 0) {
+    printf("No donations match the search criteria.\n");
   }
 }
 
