@@ -1281,6 +1281,73 @@ int getZoneLocation(const char *location) {
 }
 
 /**
+ * @brief Removes a fulfilled request from request.txt and logs it to
+ * fulfilled_requests.txt.
+ * @param requests Array of Request structures.
+ * @param requestCount Number of requests in the array.
+ * @param fulfilledRequest The request that was fulfilled and should be removed.
+ * @return 0 on success, -1 on failure.
+ */
+static int rewriteRequestsExcludingRequest(Request requests[], int requestCount,
+                                           Request fulfilledRequest) {
+  FILE *file = NULL;
+  FILE *fulfilledFile = NULL;
+  int status = -1;
+  int found = 0;
+
+  if (requests != NULL && requestCount > 0) {
+    file = fopen("request.txt", "w");
+    if (file != NULL) {
+      status = 0;
+
+      for (int i = 0; i < requestCount; i++) {
+        if (strlen(requests[i].requester.user) > 0) {
+          int isMatchingRequest =
+              strcmp(requests[i].requester.user,
+                     fulfilledRequest.requester.user) == 0 &&
+              requests[i].zone == fulfilledRequest.zone &&
+              requests[i].requestDate.year ==
+                  fulfilledRequest.requestDate.year &&
+              requests[i].requestDate.month ==
+                  fulfilledRequest.requestDate.month &&
+              requests[i].requestDate.day == fulfilledRequest.requestDate.day;
+
+          if (isMatchingRequest) {
+            found = 1;
+            continue;
+          }
+
+          if (fprintf(file, "%s:%d:%d-%02d-%02d\n", requests[i].requester.user,
+                      requests[i].zone, requests[i].requestDate.year,
+                      requests[i].requestDate.month,
+                      requests[i].requestDate.day) < 0) {
+            status = -1;
+          }
+        }
+      }
+
+      fclose(file);
+
+      if (found == 1) {
+        fulfilledFile = fopen("fulfilled_requests.txt", "a");
+        if (fulfilledFile != NULL) {
+          if (fprintf(fulfilledFile, "%s:%d:%d-%02d-%02d\n",
+                      fulfilledRequest.requester.user, fulfilledRequest.zone,
+                      fulfilledRequest.requestDate.year,
+                      fulfilledRequest.requestDate.month,
+                      fulfilledRequest.requestDate.day) < 0) {
+            status = -1;
+          }
+          fclose(fulfilledFile);
+        }
+      }
+    }
+  }
+
+  return status;
+}
+
+/**
  * @brief checks for the matching zones and returns the distance between the
  * donation and recipient zones
  * @param donationZone the zone enum value of the donation location
@@ -1310,6 +1377,7 @@ int zoneMatch(enum Zone donationZone, enum Zone recipientZone) {
  */
 void matchingZoneLocation(Donation donations[], int donationCount,
                           Request request) {
+  Request requests[MAX_REQUESTS];
   enum Zone requestZone = request.zone;
   int found = 0;
   int matchCount = 0;
@@ -1319,6 +1387,9 @@ void matchingZoneLocation(Donation donations[], int donationCount,
   int selectedMatch = -1;
   int selectedDonationIndex = -1;
   int consumeStatus = -1;
+  int fulfilledStatus = -1;
+
+  loadRequest(requests, MAX_REQUESTS);
 
   for (int i = 0; i < MAX_DONATIONS; i++) {
     matchedIndices[i] = -1;
@@ -1355,6 +1426,8 @@ void matchingZoneLocation(Donation donations[], int donationCount,
         if (consumeStatus == 0) {
           memset(&donations[selectedDonationIndex], 0, sizeof(Donation));
           donations[selectedDonationIndex].zone = -1;
+          fulfilledStatus =
+              rewriteRequestsExcludingRequest(requests, MAX_REQUESTS, request);
           printf("Donation accepted and consumed.\n");
         } else {
           printf("Could not consume selected donation.\n");
