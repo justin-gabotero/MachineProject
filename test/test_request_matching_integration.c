@@ -29,9 +29,10 @@ static int countLoadedRequests(Request list[], int max) {
   return count;
 }
 
-static void printCaseResult(int index, const char *name, int passed) {
+static void printCaseResult(int index, const char *description,
+                            const char *input, int passed) {
   printf("%-20s | %-11d | %-35s | %-12s | %-16s | %-16s | %-3s\n",
-         "integration", index, name, "simulated", "PASS",
+         "integration", index, description, input, "PASS",
          passed ? "PASS" : "FAIL", passed ? "P" : "F");
 }
 
@@ -214,12 +215,19 @@ int main(void) {
   printf("---------------------------------------------------------------------"
          "--------------------------\n");
 
-  printCaseResult(1, "request creation and persistence", case1Passed);
-  printCaseResult(2, "donation creation and persistence", case2Passed);
-  printCaseResult(3, "zone matching matrix accuracy", case3Passed);
-  printCaseResult(4, "invalid request zone number rejected", case4Passed);
-  printCaseResult(5, "invalid donation quantity rejected", case5Passed);
-  printCaseResult(6, "large valid donation accepted", case6Passed);
+  printCaseResult(1, "request creation and persistence", "zoneChoice=2",
+                  case1Passed);
+  printCaseResult(2, "donation creation and persistence",
+                  "food=Bread,qty=5,wt=2000,zone=2", case2Passed);
+  printCaseResult(3, "zone matching matrix accuracy",
+                  "Taft-Taft,Malate-Main,Paco-Main", case3Passed);
+  printCaseResult(4, "invalid request zone number rejected", "zoneChoice=9",
+                  case4Passed);
+  printCaseResult(5, "invalid donation quantity rejected",
+                  "food=Rice,qty=0,wt=1000,zone=2", case5Passed);
+  printCaseResult(6, "large valid donation accepted",
+                  "food=Canned,qty=1000000,wt=2000000000,zone=5",
+                  case6Passed);
 
   if (case1Passed) {
     passedCount++;

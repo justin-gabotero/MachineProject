@@ -9,27 +9,13 @@
 #define EPSILON 0.000001
 
 typedef struct {
-  const char *name;
+  const char *functionName;
+  const char *description;
+  char input[128];
   char expected[128];
   char actual[128];
   int passed;
 } TestResult;
-
-static void extractFunctionName(const char *testName, char *out, int outSize) {
-  int i = 0;
-
-  if (out != NULL && outSize > 0) {
-    out[0] = '\0';
-  }
-
-  if (testName != NULL && out != NULL && outSize > 1) {
-    while (testName[i] != '\0' && testName[i] != ':' && i < outSize - 1) {
-      out[i] = testName[i];
-      i++;
-    }
-    out[i] = '\0';
-  }
-}
 
 static int fileExists(const char *path) {
   FILE *file = NULL;
@@ -66,10 +52,13 @@ static Donation makeValidDonation(void) {
   return donation;
 }
 
-static void setResult(TestResult *result, const char *name,
+static void setResult(TestResult *result, const char *functionName,
+                      const char *description, const char *input,
                       const char *expected, const char *actual, int passed) {
   if (result != NULL) {
-    result->name = name;
+    result->functionName = functionName;
+    result->description = description;
+    snprintf(result->input, sizeof(result->input), "%s", input);
     snprintf(result->expected, sizeof(result->expected), "%s", expected);
     snprintf(result->actual, sizeof(result->actual), "%s", actual);
     result->passed = passed;
@@ -83,8 +72,8 @@ static void testCreateDonationNullOut(TestResult *result) {
   char actual[64];
 
   snprintf(actual, sizeof(actual), "%d", actualValue);
-  setResult(result, "createDonation: null output pointer", "-1", actual,
-            passed);
+  setResult(result, "createDonation", "null output pointer",
+            "out=NULL, weight=1000, qty=1", "-1", actual, passed);
 }
 
 static void testCreateDonationInvalidWeight(TestResult *result) {
@@ -99,7 +88,8 @@ static void testCreateDonationInvalidWeight(TestResult *result) {
   passed = actualValue == -1;
 
   snprintf(actual, sizeof(actual), "%d", actualValue);
-  setResult(result, "createDonation: weight=0 edge case", "-1", actual, passed);
+  setResult(result, "createDonation", "weight=0 edge case",
+            "weight=0, qty=1", "-1", actual, passed);
 }
 
 static void testCreateDonationInvalidDateMonth(TestResult *result) {
@@ -114,8 +104,8 @@ static void testCreateDonationInvalidDateMonth(TestResult *result) {
   passed = actualValue == -1;
 
   snprintf(actual, sizeof(actual), "%d", actualValue);
-  setResult(result, "createDonation: invalid month edge case", "-1", actual,
-            passed);
+  setResult(result, "createDonation", "invalid month edge case",
+            "expirationMonth=13", "-1", actual, passed);
 }
 
 static void testCreateDonationSuccess(TestResult *result) {
@@ -137,7 +127,8 @@ static void testCreateDonationSuccess(TestResult *result) {
 
   passed = status == 0 && copiedFields == 1;
   snprintf(actual, sizeof(actual), "status=%d copied=%d", status, copiedFields);
-  setResult(result, "createDonation: valid donation", "status=0 copied=1",
+  setResult(result, "createDonation", "valid donation",
+            "valid donor/food/date/zone/location", "status=0 copied=1",
             actual, passed);
 }
 
@@ -153,8 +144,8 @@ testComputeDonationWasteReductionInvalidQuantity(TestResult *result) {
   passed = fabs(actualValue - 0.0) < EPSILON;
 
   snprintf(actual, sizeof(actual), "%.2f", actualValue);
-  setResult(result, "computeDonationWasteReduction: quantity=0", "0.00", actual,
-            passed);
+  setResult(result, "computeDonationWasteReduction", "quantity=0", "qty=0",
+            "0.00", actual, passed);
 }
 
 static void testComputeDonationWasteReductionNormal(TestResult *result) {
@@ -168,8 +159,8 @@ static void testComputeDonationWasteReductionNormal(TestResult *result) {
   passed = fabs(actualValue - 2.5) < EPSILON;
 
   snprintf(actual, sizeof(actual), "%.2f", actualValue);
-  setResult(result, "computeDonationWasteReduction: normal", "2.50", actual,
-            passed);
+  setResult(result, "computeDonationWasteReduction", "normal",
+            "weight=2500, qty=1", "2.50", actual, passed);
 }
 
 static void testComputeTotalWasteReductionMixed(TestResult *result) {
@@ -195,8 +186,9 @@ static void testComputeTotalWasteReductionMixed(TestResult *result) {
   passed = fabs(actualValue - 3.8) < EPSILON;
 
   snprintf(actual, sizeof(actual), "%.2f", actualValue);
-  setResult(result, "computeTotalWasteReduction: mixed valid/invalid", "3.80",
-            actual, passed);
+  setResult(result, "computeTotalWasteReduction", "mixed valid/invalid",
+            "weights=[1000,700,2800], qty=[1,0,4]", "3.80", actual,
+            passed);
 }
 
 static void testLoadDonationSortAndFilter(TestResult *result) {
@@ -248,13 +240,13 @@ static void testLoadDonationSortAndFilter(TestResult *result) {
   }
 
   snprintf(actual, sizeof(actual), "status=%d restored=%d", status, restored);
-  setResult(result, "loadDonation: filters invalid + sorts desc",
-            "status=0 restored=1", actual, status == 0 && restored == 1);
+  setResult(result, "loadDonation", "filters invalid + sorts desc",
+            "3 lines + 1 malformed in donation.txt", "status=0 restored=1",
+            actual, status == 0 && restored == 1);
 }
 
 static void printResults(TestResult results[], int count) {
   int passedCount = 0;
-  char functionName[64];
 
   printf("\n===============================================================\n");
   printf("Donation System Test Results\n");
@@ -268,11 +260,10 @@ static void printResults(TestResult results[], int count) {
   for (int i = 0; i < count; i++) {
     const char *statusTag = results[i].passed ? "P" : "F";
 
-    extractFunctionName(results[i].name, functionName, sizeof(functionName));
-
     printf("%-20s | %-11d | %-35s | %-12s | %-16s | %-16s | %-3s\n",
-           functionName, i + 1, results[i].name, "-", results[i].expected,
-           results[i].actual, statusTag);
+           results[i].functionName, i + 1, results[i].description,
+           results[i].input, results[i].expected, results[i].actual,
+           statusTag);
 
     if (results[i].passed) {
       passedCount++;

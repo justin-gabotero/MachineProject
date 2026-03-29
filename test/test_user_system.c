@@ -7,27 +7,13 @@
 #define TEST_USER_BACKUP "user.txt.bak_test"
 
 typedef struct {
-  const char *name;
+  const char *functionName;
+  const char *description;
+  char input[128];
   char expected[128];
   char actual[128];
   int passed;
 } TestResult;
-
-static void extractFunctionName(const char *testName, char *out, int outSize) {
-  int i = 0;
-
-  if (out != NULL && outSize > 0) {
-    out[0] = '\0';
-  }
-
-  if (testName != NULL && out != NULL && outSize > 1) {
-    while (testName[i] != '\0' && testName[i] != ':' && i < outSize - 1) {
-      out[i] = testName[i];
-      i++;
-    }
-    out[i] = '\0';
-  }
-}
 
 static int fileExists(const char *path) {
   FILE *file = NULL;
@@ -44,10 +30,13 @@ static int fileExists(const char *path) {
   return exists;
 }
 
-static void setResult(TestResult *result, const char *name,
+static void setResult(TestResult *result, const char *functionName,
+                      const char *description, const char *input,
                       const char *expected, const char *actual, int passed) {
   if (result != NULL) {
-    result->name = name;
+    result->functionName = functionName;
+    result->description = description;
+    snprintf(result->input, sizeof(result->input), "%s", input);
     snprintf(result->expected, sizeof(result->expected), "%s", expected);
     snprintf(result->actual, sizeof(result->actual), "%s", actual);
     result->passed = passed;
@@ -107,7 +96,8 @@ static void testRegisterUserSuccess(TestResult *result) {
 
   snprintf(actual, sizeof(actual), "status=%d login=%s", status,
            logged != NULL ? "found" : "NULL");
-  setResult(result, "registerUser: valid new user", "status=0 login=found",
+  setResult(result, "registerUser", "valid new user",
+            "username=newuser,password=pass123", "status=0 login=found",
             actual, passed);
 }
 
@@ -123,7 +113,8 @@ static void testRegisterUserDuplicate(TestResult *result) {
   passed = status == -1;
 
   snprintf(actual, sizeof(actual), "%d", status);
-  setResult(result, "registerUser: duplicate username", "-1", actual, passed);
+  setResult(result, "registerUser", "duplicate username",
+            "username=existing,password=pass", "-1", actual, passed);
 }
 
 static void testRegisterUserNullInput(TestResult *result) {
@@ -135,7 +126,8 @@ static void testRegisterUserNullInput(TestResult *result) {
   passed = status == -1;
 
   snprintf(actual, sizeof(actual), "%d", status);
-  setResult(result, "registerUser: null input", "-1", actual, passed);
+  setResult(result, "registerUser", "null input", "user=NULL", "-1",
+            actual, passed);
 }
 
 static void testLoginUserSuccess(TestResult *result) {
@@ -150,7 +142,8 @@ static void testLoginUserSuccess(TestResult *result) {
   passed = found != NULL;
 
   snprintf(actual, sizeof(actual), "%s", found != NULL ? "found" : "NULL");
-  setResult(result, "loginUser: correct credentials", "found", actual, passed);
+  setResult(result, "loginUser", "correct credentials",
+            "username=login_ok,password=secret", "found", actual, passed);
 }
 
 static void testLoginUserWrongPassword(TestResult *result) {
@@ -165,7 +158,9 @@ static void testLoginUserWrongPassword(TestResult *result) {
   passed = found == NULL;
 
   snprintf(actual, sizeof(actual), "%s", found != NULL ? "found" : "NULL");
-  setResult(result, "loginUser: wrong password", "NULL", actual, passed);
+  setResult(result, "loginUser", "wrong password",
+            "username=login_wrong,password=badpass", "NULL", actual,
+            passed);
 }
 
 static void testLoginUserNonexistent(TestResult *result) {
@@ -178,7 +173,8 @@ static void testLoginUserNonexistent(TestResult *result) {
   passed = found == NULL;
 
   snprintf(actual, sizeof(actual), "%s", found != NULL ? "found" : "NULL");
-  setResult(result, "loginUser: nonexistent user", "NULL", actual, passed);
+  setResult(result, "loginUser", "nonexistent user",
+            "username=ghost,password=pass", "NULL", actual, passed);
 }
 
 static void testResetPasswordSuccess(TestResult *result) {
@@ -201,7 +197,8 @@ static void testResetPasswordSuccess(TestResult *result) {
 
   snprintf(actual, sizeof(actual), "status=%d login=%s", status,
            logged != NULL ? "found" : "NULL");
-  setResult(result, "resetUserPassword: valid update", "status=0 login=found",
+  setResult(result, "resetUserPassword", "valid update",
+            "username=resetme,newPassword=newpass", "status=0 login=found",
             actual, passed);
 }
 
@@ -216,7 +213,8 @@ static void testEditUserEmptyInput(TestResult *result) {
   passed = status == -1;
 
   snprintf(actual, sizeof(actual), "%d", status);
-  setResult(result, "editUser: empty input", "-1", actual, passed);
+  setResult(result, "editUser", "empty input",
+            "in.user='',in.password=''", "-1", actual, passed);
 }
 
 static void testEditUserDuplicateUsername(TestResult *result) {
@@ -235,12 +233,13 @@ static void testEditUserDuplicateUsername(TestResult *result) {
   passed = status == -2;
 
   snprintf(actual, sizeof(actual), "%d", status);
-  setResult(result, "editUser: duplicate username", "-2", actual, passed);
+  setResult(result, "editUser", "duplicate username",
+            "current=current_user,in.user=target_user", "-2", actual,
+            passed);
 }
 
 static void printResults(TestResult results[], int count) {
   int passedCount = 0;
-  char functionName[64];
 
   printf("\n===============================================================\n");
   printf("User System Test Results\n");
@@ -254,11 +253,10 @@ static void printResults(TestResult results[], int count) {
   for (int i = 0; i < count; i++) {
     const char *statusTag = results[i].passed ? "P" : "F";
 
-    extractFunctionName(results[i].name, functionName, sizeof(functionName));
-
     printf("%-20s | %-11d | %-35s | %-12s | %-16s | %-16s | %-3s\n",
-           functionName, i + 1, results[i].name, "-", results[i].expected,
-           results[i].actual, statusTag);
+           results[i].functionName, i + 1, results[i].description,
+           results[i].input, results[i].expected, results[i].actual,
+           statusTag);
 
     if (results[i].passed) {
       passedCount++;
