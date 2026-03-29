@@ -55,9 +55,8 @@ int main(void) {
       // returns to the menu.
       User *currentUser = loginPrompt();
       if (currentUser != NULL) {
-        // Successfully logged in, display the user menu and welcome message.
+        // Successfully logged in, enter the user menu until logout.
         userMenu(currentUser);
-        shouldExit = 1;
       }
       break;
     }

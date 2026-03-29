@@ -4,6 +4,27 @@
 #include <stdio.h>
 #include <time.h>
 
+static int isValidRole(Role role) {
+  return role == SUPPLIER || role == RECEIVER;
+}
+
+static void printDate(const Date *date) {
+  if (date != NULL) {
+    printf("%04d-%02d-%02d", date->year, date->month, date->day);
+  }
+}
+
+static void printProfile(const User *currentUser) {
+  if (currentUser != NULL) {
+    printf("\n=== Profile ===\n");
+    printf("Username: %s\n", currentUser->user);
+    printf("Role: %s\n", currentUser->role == SUPPLIER ? "Donor" : "Recipient");
+    printf("Created On: ");
+    printDate(&currentUser->creationDate);
+    printf("\n");
+  }
+}
+
 /**
  * @brief Reads a CSI-u key sequence for modern terminals and extracts key
  *        metadata.
@@ -172,7 +193,7 @@ int getCurrentDate(Date *date) {
 /**
  * @brief Displays the user menu and reads the selected menu option.
  * @param currentUser Pointer to the currently logged-in user.
- * @return Selected menu option on success, 2 if Ctrl+C is detected, or -1 on
+ * @return Selected menu option on success, -2 if Ctrl+C is detected, or -1 on
  *         invalid input.
  */
 static int readUserMenuChoice(User *currentUser) {
@@ -196,7 +217,7 @@ static int readUserMenuChoice(User *currentUser) {
 
   status = readLine(buf, sizeof(buf));
   if (status == -2) {
-    return 2;
+    return -2;
   }
   if (status != 0) {
     return -1;
@@ -215,10 +236,16 @@ static int readUserMenuChoice(User *currentUser) {
  * @return 0 on success, -1 if the user pointer is invalid.
  */
 int userMenu(User *currentUser) {
-  int status = 0, choice = -1;
+  int status = 0;
+  int choice = -1;
+  int shouldLogout = 0;
 
   // get the role from the user
   if (currentUser == NULL) {
+    status = -1;
+  }
+
+  if (status == 0 && isValidRole(currentUser->role) == 0) {
     status = -1;
   }
 
@@ -229,27 +256,44 @@ int userMenu(User *currentUser) {
                                            : "Unknown");
   }
 
-  choice = readUserMenuChoice(currentUser);
+  while (status == 0 && shouldLogout == 0) {
+    choice = readUserMenuChoice(currentUser);
 
-  switch (choice) {
-  case 1:
-    // View Profile
-    break;
-  case 2:
-    // View Donations/Requests
-    break;
-  case 3:
-    // Create Donation/Request
-    break;
-  case 4:
-    // View All Donations
-    break;
-  case 5:
-    // Logout
-    break;
-  default:
-    printf("Invalid choice. Please try again.\n");
-    break;
+    switch (choice) {
+    case -2:
+      printf("Logout requested.\n");
+      shouldLogout = 1;
+      break;
+    case 1:
+      printProfile(currentUser);
+      break;
+    case 2:
+      if (currentUser->role == SUPPLIER) {
+        viewOwnDonations(currentUser);
+      } else {
+        printf("\n=== Your Requests ===\n");
+        printf("Request viewing is not yet implemented.\n");
+      }
+      break;
+    case 3:
+      if (currentUser->role == SUPPLIER) {
+        createDonationFlow(currentUser);
+      } else {
+        printf("\n=== Create Request ===\n");
+        printf("Request creation is not yet implemented.\n");
+      }
+      break;
+    case 4:
+      viewAllDonationsList();
+      break;
+    case 5:
+      printf("Logging out...\n");
+      shouldLogout = 1;
+      break;
+    default:
+      printf("Invalid choice. Please try again.\n");
+      break;
+    }
   }
 
   return status;

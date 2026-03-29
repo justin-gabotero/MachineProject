@@ -6,6 +6,113 @@
 #include <string.h>
 #include <time.h>
 
+#define MAX_DONATIONS 512
+
+static int isLoadedDonation(const Donation *donation) {
+  int status = 0;
+
+  if (donation != NULL) {
+    if (strlen(donation->donor.user) > 0 && strlen(donation->foodType) > 0 &&
+        strlen(donation->pickupLocation) > 0 && donation->quantity > 0 &&
+        donation->weight > 0) {
+      status = 1;
+    }
+  }
+
+  return status;
+}
+
+static void printDate(const Date *date) {
+  if (date != NULL) {
+    printf("%04d-%02d-%02d", date->year, date->month, date->day);
+  }
+}
+
+static void printDonationEntry(const Donation *donation, int index) {
+  if (donation != NULL) {
+    printf("%d. Donor: %s\n", index, donation->donor.user);
+    printf("   Food Type: %s\n", donation->foodType);
+    printf("   Quantity: %d\n", donation->quantity);
+    printf("   Weight (g): %d\n", donation->weight);
+    printf("   Donation Date: ");
+    printDate(&donation->donationDate);
+    printf("\n");
+    printf("   Expiration Date: ");
+    printDate(&donation->expirationDate);
+    printf("\n");
+    printf("   Pickup Location: %s\n", donation->pickupLocation);
+  }
+}
+
+void viewAllDonationsList(void) {
+  Donation donations[MAX_DONATIONS];
+  int shown = 0;
+
+  loadDonation(donations, MAX_DONATIONS);
+
+  printf("\n=== All Donations ===\n");
+  for (int i = 0; i < MAX_DONATIONS; i++) {
+    if (isLoadedDonation(&donations[i])) {
+      shown++;
+      printDonationEntry(&donations[i], shown);
+    }
+  }
+
+  if (shown == 0) {
+    printf("No donations found.\n");
+  }
+}
+
+void viewOwnDonations(const User *currentUser) {
+  Donation donations[MAX_DONATIONS];
+  int shown = 0;
+
+  loadDonation(donations, MAX_DONATIONS);
+
+  printf("\n=== Your Donations ===\n");
+  for (int i = 0; i < MAX_DONATIONS; i++) {
+    if (isLoadedDonation(&donations[i]) && currentUser != NULL &&
+        strcmp(donations[i].donor.user, currentUser->user) == 0) {
+      shown++;
+      printDonationEntry(&donations[i], shown);
+    }
+  }
+
+  if (shown == 0) {
+    printf("No donations found for your account.\n");
+  }
+}
+
+int createDonationFlow(const User *currentUser) {
+  Donation input;
+  Donation validated;
+  int status = -1;
+
+  if (currentUser != NULL && currentUser->role == SUPPLIER) {
+    printf("\n=== Create Donation ===\n");
+    status = addDonationPrompt(*currentUser, &input);
+    if (status == -2) {
+      printf("Donation creation cancelled.\n");
+    } else if (status != 0) {
+      printf("Invalid donation details.\n");
+    }
+
+    if (status == 0) {
+      status = createDonation(input, &validated);
+      if (status != 0) {
+        printf("Donation could not be created.\n");
+      }
+    }
+
+    if (status == 0) {
+      writeDonation(validated);
+      printf("Donation created successfully.\n");
+    }
+  }
+
+  return status;
+}
+
 /**
  * @brief Prompts the user for donation details and creates a donation record.
  *
@@ -121,12 +228,12 @@ int createDonation(Donation in, Donation *out) {
  * @return Estimated waste reduction value.
  */
 double computeDonationWasteReduction(Donation donation) {
-  if(donation.weight <= 0 || donation.quantity <= 0){
+  if (donation.weight <= 0 || donation.quantity <= 0) {
     return 0.0;
   }
 
-    return donation.weight / 1000.0; // Convert grams to kilograms for waste reduction estimate
-  
+  return donation.weight /
+         1000.0; // Convert grams to kilograms for waste reduction estimate
 }
 
 /**
@@ -275,54 +382,59 @@ void loadDonation(Donation *list, int maxCount) {
  * @param count Number of donation records in the array.
  * @return Total waste reduction.
  */
-double computeTotalWasteReduction(Donation list[], int count){
-    double totalWaste = 0.0;
-    // Iterate through the list of donations and calculate the total waste reduction
-    for(int i = 0; i < count; i++){
-        totalWaste += computeDonationWasteReduction(list[i]);
-    }
-    return totalWaste;
+double computeTotalWasteReduction(Donation list[], int count) {
+  double totalWaste = 0.0;
+  // Iterate through the list of donations and calculate the total waste
+  // reduction
+  for (int i = 0; i < count; i++) {
+    totalWaste += computeDonationWasteReduction(list[i]);
+  }
+  return totalWaste;
 }
 
-
 /**
- * @brief Computes and prints monthly statistics for donations in a given month and year.
+ * @brief Computes and prints monthly statistics for donations in a given month
+ * and year.
  * @param list Array of Donation structures.
  * @param count Number of donation records in the array.
  * @param year The year for which to compute statistics.
  * @param month The month for which to compute statistics.
  */
-void computeMonthlyStats(Donation list[], int count, int year, int month){
-    int i;
-    int monthlyTotalDonations = 0;
-    int totalQuantity = 0;
-    double totalWaste = 0.0;
-    float avgQuantity = 0.0;
-    // Iterate through the list of donations and calculate the total donations, total quantity, and total waste reduction for the specified month and year
-    for(i = 0; i < count; i++){
-        if(list[i].expirationDate.year == year && list[i].expirationDate.month == month){
-            //For every donation that matches the specified month and year, increment the monthly total donations, add the quantity to the total quantity, and calculate the waste reduction and add it to the total waste
-            monthlyTotalDonations++;
-            totalQuantity += list[i].quantity;
-            totalWaste += computeDonationWasteReduction(list[i]);
-        }
+void computeMonthlyStats(Donation list[], int count, int year, int month) {
+  int i;
+  int monthlyTotalDonations = 0;
+  int totalQuantity = 0;
+  double totalWaste = 0.0;
+  float avgQuantity = 0.0;
+  // Iterate through the list of donations and calculate the total donations,
+  // total quantity, and total waste reduction for the specified month and year
+  for (i = 0; i < count; i++) {
+    if (list[i].expirationDate.year == year &&
+        list[i].expirationDate.month == month) {
+      // For every donation that matches the specified month and year, increment
+      // the monthly total donations, add the quantity to the total quantity,
+      // and calculate the waste reduction and add it to the total waste
+      monthlyTotalDonations++;
+      totalQuantity += list[i].quantity;
+      totalWaste += computeDonationWasteReduction(list[i]);
     }
-    // If there are any donations, Calculate the average quantity donated per donation for the specified month and year
-    if(monthlyTotalDonations > 0){
-        avgQuantity = (float)totalQuantity / monthlyTotalDonations;
-    }
-    //If there are any donations, print the monthly stats including total donations, total quantity donated, and estimated waste reduction. Otherwise, print a message indicating that no donations were found for that month and year
-    if(monthlyTotalDonations > 0){
-        printf("Monthly Stats for %d-%02d:\n", year, month);
-            printf("Total Donations: %d\n", monthlyTotalDonations);
-            printf("Total Quantity Donated: %d\n", totalQuantity);
-            printf("Estimated Waste Reduction: %.2f kg\n", totalWaste);
-            printf("Average Quantity per Donation: %.2f\n", avgQuantity);
-        } else {
-            printf("No donations found for %d-%02d.\n", year, month);
-        }
- }
-
-
-
-
+  }
+  // If there are any donations, Calculate the average quantity donated per
+  // donation for the specified month and year
+  if (monthlyTotalDonations > 0) {
+    avgQuantity = (float)totalQuantity / monthlyTotalDonations;
+  }
+  // If there are any donations, print the monthly stats including total
+  // donations, total quantity donated, and estimated waste reduction.
+  // Otherwise, print a message indicating that no donations were found for that
+  // month and year
+  if (monthlyTotalDonations > 0) {
+    printf("Monthly Stats for %d-%02d:\n", year, month);
+    printf("Total Donations: %d\n", monthlyTotalDonations);
+    printf("Total Quantity Donated: %d\n", totalQuantity);
+    printf("Estimated Waste Reduction: %.2f kg\n", totalWaste);
+    printf("Average Quantity per Donation: %.2f\n", avgQuantity);
+  } else {
+    printf("No donations found for %d-%02d.\n", year, month);
+  }
+}

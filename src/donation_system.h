@@ -16,8 +16,11 @@ typedef struct {
 
 int addDonationPrompt(User donor, Donation *outDonation);
 int createDonation(Donation in, Donation *out);
+int createDonationFlow(const User *currentUser);
 void writeDonation(Donation donation);
 void loadDonation(Donation list[], int maxCount);
+void viewOwnDonations(const User *currentUser);
+void viewAllDonationsList(void);
 double computeDonationWasteReduction(Donation donation);
 double computeTotalWasteReduction(Donation list[], int count);
 void computeMonthlyStats(Donation list[], int count, int year, int month);
