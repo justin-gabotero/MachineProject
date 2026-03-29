@@ -282,7 +282,7 @@ int main(void) {
     passedCount++;
   }
 
-  printf("Summary: %d/%d cases passed\n", passedCount, totalCases);
+  printf("Summary: %d/%d tests passed\n", passedCount, totalCases);
 
   remove("req_input.txt");
   remove("don_input.txt");

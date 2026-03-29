@@ -202,6 +202,7 @@ int selectZoneMenu(void) {
   printf("Choice: ");
 
   status = readLine(buf, sizeof(buf));
+  printf("\n");
 
   if (status == 0 && strlen(buf) > 0) {
     if (sscanf(buf, "%d", &choice) == 1 && choice >= 1 && choice <= NUM_ZONES) {

@@ -6,16 +6,21 @@
 #define TEST_INPUT_FILE "test_input.txt"
 
 typedef struct {
-  const char *name;
+  const char *functionName;
+  const char *description;
+  char input[128];
   char expected[128];
   char actual[128];
   int passed;
 } TestResult;
 
-static void setResult(TestResult *result, const char *name,
+static void setResult(TestResult *result, const char *functionName,
+                      const char *description, const char *input,
                       const char *expected, const char *actual, int passed) {
   if (result != NULL) {
-    result->name = name;
+    result->functionName = functionName;
+    result->description = description;
+    snprintf(result->input, sizeof(result->input), "%s", input);
     snprintf(result->expected, sizeof(result->expected), "%s", expected);
     snprintf(result->actual, sizeof(result->actual), "%s", actual);
     result->passed = passed;
@@ -40,8 +45,9 @@ static void testReadLineNormal(TestResult *result) {
   status = readLine(buffer, sizeof(buffer));
 
   snprintf(actual, sizeof(actual), "status=%d value=%s", status, buffer);
-  setResult(result, "readLine: normal string", "status=0 value=Hello World",
-            actual, status == 0 && strcmp(buffer, "Hello World") == 0);
+  setResult(result, "readLine", "normal string", "input=Hello World",
+            "status=0 value=Hello World", actual,
+            status == 0 && strcmp(buffer, "Hello World") == 0);
 }
 
 static void testReadLineEmpty(TestResult *result) {
@@ -53,8 +59,8 @@ static void testReadLineEmpty(TestResult *result) {
   status = readLine(buffer, sizeof(buffer));
 
   snprintf(actual, sizeof(actual), "status=%d value=%s", status, buffer);
-  setResult(result, "readLine: empty string", "status=0 value=", actual,
-            status == 0 && strcmp(buffer, "") == 0);
+  setResult(result, "readLine", "empty string", "input=<empty>",
+            "status=0 value=", actual, status == 0 && strcmp(buffer, "") == 0);
 }
 
 static void testReadLineColonEscaped(TestResult *result) {
@@ -66,7 +72,8 @@ static void testReadLineColonEscaped(TestResult *result) {
   status = readLine(buffer, sizeof(buffer));
 
   snprintf(actual, sizeof(actual), "status=%d value=%s", status, buffer);
-  setResult(result, "readLine: colon escaped", "status=0 value=A%3AB", actual,
+  setResult(result, "readLine", "colon escaped", "input=A:B",
+            "status=0 value=A%3AB", actual,
             status == 0 && strcmp(buffer, "A%3AB") == 0);
 }
 
@@ -78,7 +85,8 @@ static void testSelectZoneMenuValid(TestResult *result) {
   status = selectZoneMenu();
 
   snprintf(actual, sizeof(actual), "%d", status);
-  setResult(result, "selectZoneMenu: valid choice", "1", actual, status == 1);
+  setResult(result, "selectZoneMenu", "valid choice", "choice=2", "1", actual,
+            status == 1);
 }
 
 static void testSelectZoneMenuInvalid(TestResult *result) {
@@ -89,8 +97,8 @@ static void testSelectZoneMenuInvalid(TestResult *result) {
   status = selectZoneMenu();
 
   snprintf(actual, sizeof(actual), "%d", status);
-  setResult(result, "selectZoneMenu: invalid choice", "-1", actual,
-            status == -1);
+  setResult(result, "selectZoneMenu", "invalid choice", "choice=9", "-1",
+            actual, status == -1);
 }
 
 static void testSelectDonationSortMenuValid(TestResult *result) {
@@ -101,25 +109,28 @@ static void testSelectDonationSortMenuValid(TestResult *result) {
   status = selectDonationSortMenu();
 
   snprintf(actual, sizeof(actual), "%d", status);
-  setResult(result, "selectDonationSortMenu: valid choice", "2", actual,
-            status == 2);
+  setResult(result, "selectDonationSortMenu", "valid choice", "choice=3", "2",
+            actual, status == 2);
 }
 
 static void printResults(TestResult results[], int count) {
   int passedCount = 0;
 
-  printf("\n=== user_input tests ===\n\n");
+  printf("\n===============================================================\n");
+  printf("User Input Test Results\n");
   printf("===============================================================\n");
-  printf("%-3s | %-46s | %-16s | %-16s\n", "#", "Test", "Expected", "Actual");
+  printf("%-20s | %-11s | %-35s | %-12s | %-16s | %-16s | %-3s\n",
+         "Function Name", "Test Case #", "Description", "Input",
+         "Expected Output", "Actual Output", "P/F");
   printf("----------------------------------------------------------------"
-         "---------------\n");
+         "---------------------------------------------\n");
 
   for (int i = 0; i < count; i++) {
-    const char *statusTag = results[i].passed ? "PASS" : "FAIL";
+    const char *statusTag = results[i].passed ? "P" : "F";
 
-    printf("%-3d | %-46s | %-16s | %-16s\n", i + 1, results[i].name,
-           results[i].expected, results[i].actual);
-    printf("      Result: %s\n", statusTag);
+    printf("%-20s | %-11d | %-35s | %-12s | %-16s | %-16s | %-3s\n",
+           results[i].functionName, i + 1, results[i].description,
+           results[i].input, results[i].expected, results[i].actual, statusTag);
 
     if (results[i].passed) {
       passedCount++;
