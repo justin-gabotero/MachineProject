@@ -610,50 +610,54 @@ void computeMonthlyStats(Donation list[], int count, int year, int month) {
   }
 }
 
-
-    /**
+/**
  * @brief gets zone location from a given location string
  * @param location string representing the location to be checked
  * @return The zone enum value corresponding to the location, or -1 if invalid.
  */
 int getZoneLocation(const char *location) {
-  //compares strings to see if it matches the location then returning the zone enum value
-    if (strcmp(location, "DLSU Main") == 0){
-      return ZONE_DLSU_MAIN;
-    }
-    if (strcmp(location, "Taft Avenue") == 0){
-      return ZONE_TAFT;
-    }
-    if (strcmp(location, "Malate") == 0) {
-      return ZONE_MALATE;
-    }
-    if (strcmp(location, "Paco") == 0) {
-      return ZONE_PACO;
-    }
-    if (strcmp(location, "Ermita") == 0) {
-      return ZONE_ERMITA;
-    }
-    return -1; // invalid zone
+  // compares strings to see if it matches the location then returning the zone
+  // enum value
+  if (strcmp(location, "DLSU Main") == 0) {
+    return ZONE_DLSU_MAIN;
+  }
+  if (strcmp(location, "Taft Avenue") == 0) {
+    return ZONE_TAFT;
+  }
+  if (strcmp(location, "Malate") == 0) {
+    return ZONE_MALATE;
+  }
+  if (strcmp(location, "Paco") == 0) {
+    return ZONE_PACO;
+  }
+  if (strcmp(location, "Ermita") == 0) {
+    return ZONE_ERMITA;
+  }
+  return -1; // invalid zone
 }
 
 /**
- * @brief checks for the matching zones and returns the distance between the donation and recipient zones
+ * @brief checks for the matching zones and returns the distance between the
+ * donation and recipient zones
  * @param donationZone the zone enum value of the donation location
  * @param recipientZone the zone enum value of the recipient location
  */
-int zoneMatch(enum Zone donationZone, enum Zone recipientZone){
+int zoneMatch(enum Zone donationZone, enum Zone recipientZone) {
   int distance = ZONE_DISTANCE[donationZone][recipientZone];
   return distance <= 2;
 }
 /**
- * @brief matches the zone location of the donation and request and prints the matching donations for the requester
+ * @brief matches the zone location of the donation and request and prints the
+ * matching donations for the requester
  * @param donations array of donations to check for matches
  * @param donationCount number of donations in the array
- * @param request the request containing the requester's location to match against
+ * @param request the request containing the requester's location to match
+ * against
  */
-void matchingZoneLocation(Donation donations[], int donationCount, Request request){
+void matchingZoneLocation(Donation donations[], int donationCount,
+                          Request request) {
   // Implementation for matching zone locations
-  enum Zone requestZone = getZoneLocation(request.requestLocation);
+  enum Zone requestZone = request.zone;
   int found = 0;
 
   printf("Matching Donations for %s", request.requester.user);
@@ -662,10 +666,8 @@ void matchingZoneLocation(Donation donations[], int donationCount, Request reque
       printDonationEntry(&donations[i], i + 1);
       found = 1;
     }
-    
   }
   if (found == 0) {
-      printf("No matching donations found for the requester's location.\n");
-    }
+    printf("No matching donations found for the requester's location.\n");
+  }
 }
-
