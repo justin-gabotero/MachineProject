@@ -61,6 +61,7 @@ int main(void) {
   int requestStatusInvalid = -1;
   int donationStatusInvalid = -1;
   int donationStatusLarge = -1;
+  int donationStatusNonNumeric = -1;
   int donationCount = 0;
   int requestCount = 0;
   int donationCountAfterInitial = 0;
@@ -68,16 +69,19 @@ int main(void) {
   int donationCountAfterInvalid = 0;
   int requestCountAfterInvalid = 0;
   int donationCountAfterLarge = 0;
+  int donationCountAfterNonNumeric = 0;
   int case1Passed = 0;
   int case2Passed = 0;
   int case3Passed = 0;
   int case4Passed = 0;
   int case5Passed = 0;
   int case6Passed = 0;
+  int case7Passed = 0;
   int passedCount = 0;
-  int totalCases = 6;
+  int totalCases = 7;
   int requestCountBeforeInvalid = 0;
   int donationCountBeforeInvalid = 0;
+  int donationCountBeforeNonNumeric = 0;
 
   memset(&supplier, 0, sizeof(supplier));
   memset(&receiver, 0, sizeof(receiver));
@@ -192,6 +196,30 @@ int main(void) {
   donationCount = countLoadedDonations(donations, MAX_ITEMS);
   donationCountAfterLarge = donationCount;
 
+  donationCountBeforeNonNumeric = donationCountAfterLarge;
+
+  if (writeInputFile("don_non_numeric_input.txt",
+                     "2395029gheiorgpa\n"
+                     "voehso\n"
+                     "1000\n"
+                     "12-31-2026\n"
+                     "2\n"
+                     "Invalid Quantity Case\n") != 0) {
+    printf("FAIL: cannot create don_non_numeric_input.txt\n");
+    return 1;
+  }
+
+  if (freopen("don_non_numeric_input.txt", "r", stdin) == NULL) {
+    printf("FAIL: cannot redirect stdin for non-numeric donation flow\n");
+    return 1;
+  }
+
+  donationStatus = createDonationFlow(&supplier);
+  donationStatusNonNumeric = donationStatus;
+  loadDonation(donations, MAX_ITEMS);
+  donationCount = countLoadedDonations(donations, MAX_ITEMS);
+  donationCountAfterNonNumeric = donationCount;
+
   case1Passed = (requestStatusInitial == 0 && requestCountAfterInitial >= 1);
   case2Passed = (donationStatusInitial == 0 && donationCountAfterInitial >= 1);
   case3Passed = (zoneMatch(ZONE_TAFT, ZONE_TAFT) == 1 &&
@@ -203,6 +231,8 @@ int main(void) {
                  donationCountAfterInvalid == donationCountBeforeInvalid);
   case6Passed = (donationStatusLarge == 0 &&
                  donationCountAfterLarge >= donationCountBeforeInvalid + 1);
+  case7Passed = (donationStatusNonNumeric == -1 &&
+                 donationCountAfterNonNumeric == donationCountBeforeNonNumeric);
 
   printf("\n==================================================================="
          "============================\n");
@@ -227,6 +257,8 @@ int main(void) {
                   "food=Rice,qty=0,wt=1000,zone=2", case5Passed);
   printCaseResult(6, "large valid donation accepted",
                   "food=Canned,qty=1000000,wt=2000000000,zone=5", case6Passed);
+  printCaseResult(7, "non-numeric quantity rejected",
+                  "food=2395029gheiorgpa,qty=voehso", case7Passed);
 
   if (case1Passed) {
     passedCount++;
@@ -246,6 +278,9 @@ int main(void) {
   if (case6Passed) {
     passedCount++;
   }
+  if (case7Passed) {
+    passedCount++;
+  }
 
   printf("Summary: %d/%d cases passed\n", passedCount, totalCases);
 
@@ -254,6 +289,7 @@ int main(void) {
   remove("req_invalid_input.txt");
   remove("don_invalid_input.txt");
   remove("don_large_input.txt");
+  remove("don_non_numeric_input.txt");
   remove("donation.txt");
   remove("request.txt");
 

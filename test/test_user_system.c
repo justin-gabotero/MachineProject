@@ -1,3 +1,4 @@
+#include "../src/user_input.h"
 #include "../src/user_system.h"
 
 #include <stdio.h>
@@ -76,6 +77,19 @@ static int resetPasswordAs(User *user, const char *newPassword) {
 
   strcpy(passBuf, newPassword);
   status = resetUserPassword(user, passBuf);
+
+  return status;
+}
+
+static int writeInputFile(const char *path, const char *content) {
+  FILE *file = fopen(path, "w");
+  int status = -1;
+
+  if (file != NULL) {
+    fputs(content, file);
+    fclose(file);
+    status = 0;
+  }
 
   return status;
 }
@@ -236,6 +250,24 @@ static void testEditUserDuplicateUsername(TestResult *result) {
             "current=current_user,in.user=target_user", "-2", actual, passed);
 }
 
+static void testUserMenuInvalidChoiceInput(TestResult *result) {
+  User current = makeValidUser("menuuser", "pass", SUPPLIER);
+  int status = -1;
+  int passed = 0;
+  char actual[64];
+
+  if (writeInputFile("menu_invalid_input.txt", "voehso\n5\n") == 0) {
+    if (freopen("menu_invalid_input.txt", "r", stdin) != NULL) {
+      status = userMenu(&current);
+    }
+  }
+
+  passed = status == 0;
+  snprintf(actual, sizeof(actual), "%d", status);
+  setResult(result, "userMenu", "invalid menu input then logout",
+            "choice=voehso then 5", "0", actual, passed);
+}
+
 static void printResults(TestResult results[], int count) {
   int passedCount = 0;
 
@@ -266,7 +298,7 @@ static void printResults(TestResult results[], int count) {
 }
 
 int main(void) {
-  TestResult results[9];
+  TestResult results[10];
   int count = 0;
   int failedCount = 0;
   int hadOriginal = 0;
@@ -289,6 +321,7 @@ int main(void) {
   testResetPasswordSuccess(&results[count++]);
   testEditUserEmptyInput(&results[count++]);
   testEditUserDuplicateUsername(&results[count++]);
+  testUserMenuInvalidChoiceInput(&results[count++]);
 
   printResults(results, count);
 
@@ -299,6 +332,7 @@ int main(void) {
   }
 
   remove(TEST_USER_FILE);
+  remove("menu_invalid_input.txt");
 
   if (movedOriginal == 1) {
     if (rename(TEST_USER_BACKUP, TEST_USER_FILE) == 0) {
