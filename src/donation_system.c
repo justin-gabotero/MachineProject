@@ -269,7 +269,12 @@ void loadDonation(Donation *list, int maxCount) {
     }
   }
 }
-
+/**
+ * @brief Computes the total waste reduction for a list of donation records.
+ * @param list Array of Donation structures.
+ * @param count Number of donation records in the array.
+ * @return Total waste reduction.
+ */
 double computeTotalWasteReduction(Donation list[], int count){
     double totalWaste = 0.0;
     // Iterate through the list of donations and calculate the total waste reduction
@@ -280,11 +285,13 @@ double computeTotalWasteReduction(Donation list[], int count){
 }
 
 
-//Function to compute and print monthly statistics for donations based on a given list of donations, the number of donations in the list, and the specified month and year for which to compute the statistics
-//@param list, an array of Donation structs representing the list of donations to analyze
-//@param count, the number of donations in the list
-//@param year, the year for which to compute the monthly statistics
-//@param month, the month for which to compute the monthly statistics  
+/**
+ * @brief Computes and prints monthly statistics for donations in a given month and year.
+ * @param list Array of Donation structures.
+ * @param count Number of donation records in the array.
+ * @param year The year for which to compute statistics.
+ * @param month The month for which to compute statistics.
+ */
 void computeMonthlyStats(Donation list[], int count, int year, int month){
     int i;
     int monthlyTotalDonations = 0;
