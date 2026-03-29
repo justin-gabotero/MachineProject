@@ -185,7 +185,7 @@ int getCurrentDate(Date *date) {
 
 /**
  * @brief Displays zone selection menu and returns the selected zone.
- * @return Zone enum value (0-5) on success, -1 on invalid input.
+ * @return Zone enum value (0-4) on success, -1 on invalid input.
  */
 int selectZoneMenu(void) {
   int choice = 0;
@@ -195,11 +195,10 @@ int selectZoneMenu(void) {
 
   printf("\nSelect location zone:\n");
   printf("[1] DLSU Main\n");
-  printf("[2] DLSU SFC\n");
-  printf("[3] Taft Avenue\n");
-  printf("[4] Malate\n");
-  printf("[5] Paco\n");
-  printf("[6] Ermita\n");
+  printf("[2] Taft Avenue\n");
+  printf("[3] Malate\n");
+  printf("[4] Paco\n");
+  printf("[5] Ermita\n");
   printf("Choice: ");
 
   status = readLine(buf, sizeof(buf));

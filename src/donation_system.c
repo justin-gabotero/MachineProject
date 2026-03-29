@@ -22,9 +22,6 @@ const char *getZoneName(int zone) {
     case ZONE_DLSU_MAIN:
       status = "DLSU Main";
       break;
-    case ZONE_DLSU_SFC:
-      status = "DLSU SFC";
-      break;
     case ZONE_TAFT:
       status = "Taft Avenue";
       break;
