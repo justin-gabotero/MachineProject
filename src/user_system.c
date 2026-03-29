@@ -6,6 +6,11 @@
 #include <string.h>
 #include <time.h>
 
+/**
+ * @brief Reads and validates a role choice from standard input.
+ * @param outRole Output role when a valid choice is entered.
+ * @return 0 on success, -1 on cancellation or invalid input stream.
+ */
 static int readRole(Role *outRole) {
   char buf[16];
   int choice = -1;
@@ -36,6 +41,13 @@ static int readRole(Role *outRole) {
   return status;
 }
 
+/**
+ * @brief Replaces a user's fields with new values after validation.
+ * @param user Target user object to edit.
+ * @param in Source user data to copy from.
+ * @return 0 on success, -1 for invalid input, -2 when new username already
+ * exists.
+ */
 int editUser(User *user, User *in) {
   int status = 0;
   int exists = 0;
@@ -66,6 +78,11 @@ int editUser(User *user, User *in) {
   return status;
 }
 
+/**
+ * @brief Registers a user when the username is not already taken.
+ * @param user User record to persist.
+ * @return 0 on success, -1 on duplicate username or storage failure.
+ */
 int registerUser(User *user) {
   int exists = 0;
   int status = -1;
@@ -81,6 +98,10 @@ int registerUser(User *user) {
   return status;
 }
 
+/**
+ * @brief Runs the interactive registration flow.
+ * @return 0 when registration succeeds, -1 otherwise.
+ */
 int registerPrompt(void) {
   User newUser;
   StringLong confirm;
@@ -168,6 +189,12 @@ int registerPrompt(void) {
   return status;
 }
 
+/**
+ * @brief Attempts login using username and password credentials.
+ * @param user Username input.
+ * @param pass Password input.
+ * @return Pointer to a static logged-in user on success, otherwise NULL.
+ */
 User *loginUser(String user, StringLong pass) {
   static User logged;
   User *result = NULL;
@@ -181,6 +208,10 @@ User *loginUser(String user, StringLong pass) {
   return result;
 }
 
+/**
+ * @brief Runs the interactive password recovery flow.
+ * @return 0 on success, -1 on failure, -2 when cancelled.
+ */
 int recoverPasswordPrompt(void) {
   String user;
   StringLong newPass;
@@ -231,6 +262,12 @@ int recoverPasswordPrompt(void) {
   return status;
 }
 
+/**
+ * @brief Resets a user's password by updating the stored record.
+ * @param user User identity containing at least a valid username.
+ * @param newPass New password to store.
+ * @return 0 on success, -1 on invalid input or update failure.
+ */
 int resetUserPassword(User *user, StringLong newPass) {
   int status = -1;
   User updatedUser;
@@ -250,6 +287,10 @@ int resetUserPassword(User *user, StringLong newPass) {
   return status;
 }
 
+/**
+ * @brief Runs the interactive login prompt with up to three attempts.
+ * @return Pointer to logged-in user on success, otherwise NULL.
+ */
 User *loginPrompt(void) {
   String user;
   StringLong pass;

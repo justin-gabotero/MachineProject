@@ -8,15 +8,23 @@
 #define MAX_PASSWORD_LEN 127
 #define MAX_HEX_PASS_LEN (MAX_PASSWORD_LEN * 2)
 
-// helper function to XOR encrypt/decrypt password bytes
+/**
+ * @brief XORs a sequence of bytes using the internal key.
+ * @param input Source bytes as a character buffer.
+ * @param len Number of bytes to process.
+ * @param output Destination buffer for XORed bytes.
+ */
 static void xorBytes(const char *input, int len, unsigned char *output) {
   for (int i = 0; i < len; i++) {
     output[i] = ((unsigned char)input[i]) ^ XOR_KEY;
   }
 }
 
-// helper functions for hex encoding/decoding to store XORed passwords in text
-// format
+/**
+ * @brief Converts a hex character to its numeric value.
+ * @param ch Hex character in [0-9a-fA-F].
+ * @return Numeric value 0-15, or -1 if the character is not hex.
+ */
 static int hexValue(char ch) {
   int value = -1;
 
@@ -31,7 +39,11 @@ static int hexValue(char ch) {
   return value;
 }
 
-// check if a string is a valid hex string (even length and only hex chars)
+/**
+ * @brief Validates whether a string is a well-formed hex sequence.
+ * @param input Candidate hex string.
+ * @return 1 if valid and even-length, otherwise 0.
+ */
 static int isHexString(const char *input) {
   int len = (int)strlen(input);
   int isValid = 1;
@@ -49,7 +61,14 @@ static int isHexString(const char *input) {
   return isValid;
 }
 
-// convert binary data to hex string (output should have enough space for null
+/**
+ * @brief Encodes binary data into uppercase hexadecimal text.
+ * @param input Source byte buffer.
+ * @param len Number of source bytes.
+ * @param output Destination C-string buffer.
+ * @param outputSize Capacity of @p output in bytes.
+ * @return 0 on success, -1 if the output buffer is too small.
+ */
 static int hexEncode(const unsigned char *input, int len, char *output,
                      int outputSize) {
   const char hexDigits[] = "0123456789ABCDEF";
@@ -71,8 +90,14 @@ static int hexEncode(const unsigned char *input, int len, char *output,
   return status;
 }
 
-// convert hex string back to binary data, output should have enough space for
-// the decoded bytes, outLen will be set to the number of decoded bytes
+/**
+ * @brief Decodes a hexadecimal string into raw bytes.
+ * @param input Source hex C-string.
+ * @param output Destination byte buffer.
+ * @param outputSize Capacity of @p output in bytes.
+ * @param outLen Output parameter set to decoded byte count on success.
+ * @return 0 on success, -1 on invalid hex input or insufficient output space.
+ */
 static int hexDecode(const char *input, unsigned char *output, int outputSize,
                      int *outLen) {
   int len = (int)strlen(input);
@@ -100,14 +125,25 @@ static int hexDecode(const char *input, unsigned char *output, int outputSize,
   return status;
 }
 
-// XOR encrypt the input string and store the result in output
+/**
+ * @brief XOR-transforms a null-terminated string into another buff er.
+ * @param input Source plaintext or XOR text.
+ * @param output Destination buffer; must have room for input length + null.
+ */
 static void xorEncrypt(char *input, char *output) {
   int len = (int)strlen(input);
   xorBytes(input, len, (unsigned char *)output);
   output[len] = '\0';
 }
 
-// read user data from user.txt and check if the provided username and password
+/**
+ * @brief Authenticates a user from records stored in user.txt.
+ * @param user Username to search.
+ * @param pass Password to verify.
+ * @param out Output user record when credentials match.
+ * @return 0 on successful authentication, -1 on I/O or invalid input, -2 when
+ * no match is found.
+ */
 int getUser(String user, StringLong pass, User *out) {
   int status = -2;
   int keepSearching = 1;
@@ -180,8 +216,12 @@ int getUser(String user, StringLong pass, User *out) {
   return status;
 }
 
-// check if a username already exists in user.txt (used for registration to
-// prevent duplicates)
+/**
+ * @brief Checks whether a username already exists in user.txt.
+ * @param user Username to query.
+ * @param outExists Output flag set to 1 when found, otherwise 0.
+ * @return 0 on successful check, -1 on invalid input.
+ */
 int usernameExists(String user, int *outExists) {
   int status = -1;
   int inputsValid = 0;
@@ -223,8 +263,11 @@ int usernameExists(String user, int *outExists) {
   return status;
 }
 
-// write a new user record to user.txt, password will be XOR encrypted and
-// stored in hex format for text safety.  returns 0 on success, -1 on failure
+/**
+ * @brief Appends a user record to user.txt using hex-encoded XOR password.
+ * @param user User record to write.
+ * @return 0 on success, -1 on validation, encoding, or file-write failure.
+ */
 int writeUser(User *user) {
   FILE *userFile = NULL;
   unsigned char xorPass[MAX_PASSWORD_LEN];
@@ -278,7 +321,12 @@ int writeUser(User *user) {
   return status;
 }
 
-// update an existing user record in user.txt by matching the username.
+/**
+ * @brief Updates an existing user record by username using a temporary file.
+ * @param updatedUser User fields to apply to the matching record.
+ * @return 0 when the record is updated and file replacement succeeds, -1
+ * otherwise.
+ */
 int updateUserRecord(User updatedUser) {
   FILE *sourceFile = NULL;
   FILE *tempFile = NULL;
