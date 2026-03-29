@@ -1429,6 +1429,9 @@ void matchingZoneLocation(Donation donations[], int donationCount,
           fulfilledStatus =
               rewriteRequestsExcludingRequest(requests, MAX_REQUESTS, request);
           printf("Donation accepted and consumed.\n");
+          if (fulfilledStatus != 0) {
+            printf("Warning: Could not remove fulfilled request from file.\n");
+          }
         } else {
           printf("Could not consume selected donation.\n");
         }
