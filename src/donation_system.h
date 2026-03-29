@@ -54,6 +54,7 @@ int createRequestFlow(const User *currentUser);
 void writeDonation(Donation donation);
 void writeRequest(Request request);
 void loadDonation(Donation list[], int maxCount);
+void loadConsumedDonations(Donation list[], int maxCount);
 void loadRequest(Request list[], int maxCount);
 void viewOwnDonations(const User *currentUser);
 void viewOwnRequests(const User *currentUser);

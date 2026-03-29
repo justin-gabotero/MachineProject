@@ -206,6 +206,7 @@ static int matchesSearchFilters(const Donation *donation,
 static int rewriteDonationsExcludingIndex(Donation donations[],
                                           int donationCount, int excludeIndex) {
   FILE *file = NULL;
+  FILE *consumedFile = NULL;
   int status = -1;
 
   if (donations != NULL && donationCount > 0 && excludeIndex >= 0 &&
@@ -231,6 +232,29 @@ static int rewriteDonationsExcludingIndex(Donation donations[],
       }
 
       fclose(file);
+
+      /* Log consumed donation to consumed.txt */
+      consumedFile = fopen("consumed.txt", "a");
+      if (consumedFile != NULL) {
+        if (isLoadedDonation(&donations[excludeIndex])) {
+          if (fprintf(
+                  consumedFile, "%s:%s:%d:%d-%02d-%02d:%d-%02d-%02d:%d:%d:%s\n",
+                  donations[excludeIndex].donor.user,
+                  donations[excludeIndex].foodType,
+                  donations[excludeIndex].quantity,
+                  donations[excludeIndex].donationDate.year,
+                  donations[excludeIndex].donationDate.month,
+                  donations[excludeIndex].donationDate.day,
+                  donations[excludeIndex].expirationDate.year,
+                  donations[excludeIndex].expirationDate.month,
+                  donations[excludeIndex].expirationDate.day,
+                  donations[excludeIndex].weight, donations[excludeIndex].zone,
+                  donations[excludeIndex].location) < 0) {
+            status = -1;
+          }
+        }
+        fclose(consumedFile);
+      }
     }
   }
 
@@ -375,6 +399,7 @@ void searchDonations(void) {
  */
 void viewDonationImpactStats(void) {
   Donation donations[MAX_DONATIONS];
+  Donation consumedDonations[MAX_DONATIONS];
   Date currentDate;
   int totalDonations = 0;
   int totalQuantity = 0;
@@ -393,7 +418,9 @@ void viewDonationImpactStats(void) {
   currentDate.day = 0;
 
   loadDonation(donations, MAX_DONATIONS);
+  loadConsumedDonations(consumedDonations, MAX_DONATIONS);
 
+  /* Count and aggregate stats from active donations */
   for (int i = 0; i < MAX_DONATIONS; i++) {
     if (isLoadedDonation(&donations[i])) {
       totalDonations++;
@@ -402,7 +429,18 @@ void viewDonationImpactStats(void) {
     }
   }
 
-  totalWastePreventedKg = computeTotalWasteReduction(donations, MAX_DONATIONS);
+  /* Count and aggregate stats from consumed donations */
+  for (int i = 0; i < MAX_DONATIONS; i++) {
+    if (isLoadedDonation(&consumedDonations[i])) {
+      totalDonations++;
+      totalQuantity += consumedDonations[i].quantity;
+      totalWeightKg += consumedDonations[i].weight / 1000.0;
+    }
+  }
+
+  totalWastePreventedKg =
+      computeTotalWasteReduction(donations, MAX_DONATIONS) +
+      computeTotalWasteReduction(consumedDonations, MAX_DONATIONS);
 
   if (totalDonations > 0) {
     averageDonationSizeKg = totalWeightKg / totalDonations;
@@ -412,7 +450,7 @@ void viewDonationImpactStats(void) {
   estimatedMealsProvided = totalWeightKg / KG_PER_MEAL;
 
   printf("\n=== Donation Impact Stats ===\n");
-  printf("Total Donations: %d\n", totalDonations);
+  printf("Total Donations (Active + Consumed): %d\n", totalDonations);
   printf("Total Quantity Donated: %d\n", totalQuantity);
   printf("Total Food Waste Prevented: %.2f kg\n", totalWastePreventedKg);
   printf("Average Donation Size: %.2f kg\n", averageDonationSizeKg);
@@ -433,6 +471,7 @@ void viewDonationImpactStats(void) {
 
     if (monthStatus == 0 && yearStatus == 0) {
       computeMonthlyStats(donations, MAX_DONATIONS, year, month);
+      computeMonthlyStats(consumedDonations, MAX_DONATIONS, year, month);
     } else {
       printf("Invalid month/year input. Monthly stats were not generated.\n");
     }
@@ -916,6 +955,96 @@ void loadDonation(Donation *list, int maxCount) {
 
     // Open donation.txt for reading and load donation records into the list.
     file = fopen("donation.txt", "r");
+    if (file != NULL) {
+      while (loadedCount < maxCount &&
+             fgets(line, sizeof(line), file) != NULL) {
+        Donation parsed;
+        int matched = 0;
+
+        parsed.donor.user[0] = '\0';
+        parsed.donor.password[0] = '\0';
+        parsed.donor.creationDate.year = 0;
+        parsed.donor.creationDate.month = 0;
+        parsed.donor.creationDate.day = 0;
+        parsed.donor.role = (Role)-1;
+        parsed.foodType[0] = '\0';
+        parsed.zone = -1;
+        parsed.location[0] = '\0';
+        parsed.donationDate.year = 0;
+        parsed.donationDate.month = 0;
+        parsed.donationDate.day = 0;
+        parsed.expirationDate.year = 0;
+        parsed.expirationDate.month = 0;
+        parsed.expirationDate.day = 0;
+        parsed.weight = 0;
+        parsed.quantity = 0;
+
+        matched =
+            sscanf(line, "%31[^:]:%31[^:]:%d:%d-%d-%d:%d-%d-%d:%d:%d:%127[^\n]",
+                   parsed.donor.user, parsed.foodType, &parsed.quantity,
+                   &parsed.donationDate.year, &parsed.donationDate.month,
+                   &parsed.donationDate.day, &parsed.expirationDate.year,
+                   &parsed.expirationDate.month, &parsed.expirationDate.day,
+                   &parsed.weight, &parsed.zone, parsed.location);
+
+        if (matched == 12 && parsed.quantity > 0 && parsed.weight > 0 &&
+            parsed.zone >= 0 && parsed.zone < NUM_ZONES &&
+            parsed.donationDate.year >= 1970 &&
+            parsed.donationDate.year <= 2100 &&
+            parsed.donationDate.month >= 1 && parsed.donationDate.month <= 12 &&
+            parsed.donationDate.day >= 1 && parsed.donationDate.day <= 31 &&
+            parsed.expirationDate.year >= 1970 &&
+            parsed.expirationDate.year <= 2100 &&
+            parsed.expirationDate.month >= 1 &&
+            parsed.expirationDate.month <= 12 &&
+            parsed.expirationDate.day >= 1 && parsed.expirationDate.day <= 31) {
+          list[loadedCount] = parsed;
+          loadedCount++;
+        }
+      }
+
+      fclose(file);
+    }
+
+    if (loadedCount > 1) {
+      qsort(list, (size_t)loadedCount, sizeof(Donation),
+            compareDonationDateDesc);
+    }
+  }
+}
+
+/**
+ * @brief Loads consumed donation records from consumed.txt into an array.
+ * @param[out] list Array of Donation structures that receives loaded records.
+ * @param maxCount Maximum number of records to load.
+ */
+void loadConsumedDonations(Donation *list, int maxCount) {
+  FILE *file = NULL;
+  char line[512];
+  int loadedCount = 0;
+
+  if (list != NULL && maxCount > 0) {
+    for (int i = 0; i < maxCount; i++) {
+      list[i].donor.user[0] = '\0';
+      list[i].donor.password[0] = '\0';
+      list[i].donor.creationDate.year = 0;
+      list[i].donor.creationDate.month = 0;
+      list[i].donor.creationDate.day = 0;
+      list[i].donor.role = (Role)-1;
+      list[i].foodType[0] = '\0';
+      list[i].zone = -1;
+      list[i].location[0] = '\0';
+      list[i].donationDate.year = 0;
+      list[i].donationDate.month = 0;
+      list[i].donationDate.day = 0;
+      list[i].expirationDate.year = 0;
+      list[i].expirationDate.month = 0;
+      list[i].expirationDate.day = 0;
+      list[i].weight = 0;
+      list[i].quantity = 0;
+    }
+
+    file = fopen("consumed.txt", "r");
     if (file != NULL) {
       while (loadedCount < maxCount &&
              fgets(line, sizeof(line), file) != NULL) {
