@@ -6,6 +6,7 @@
 int readLine(char *buf, int size);
 int getCurrentDate(Date *date);
 int selectZoneMenu(void);
+int selectDonationSortMenu(void);
 int userMenu(User *currentUser);
 
 #endif

@@ -102,25 +102,63 @@ static void printDonationEntry(const Donation *donation, int index) {
   }
 }
 
+// Forward declarations for comparison functions
+static int compareDonationDateDesc(const void *left, const void *right);
+static int compareDonationFoodTypeAsc(const void *left, const void *right);
+static int compareDonationDonorNameAsc(const void *left, const void *right);
+
 /**
- * @brief Displays a list of all donations in the system with their details.
+ * @brief Displays a list of all donations in the system with sort options.
  */
 void viewAllDonationsList(void) {
   Donation donations[MAX_DONATIONS];
+  Donation sorted[MAX_DONATIONS];
+  int totalLoaded = 0;
   int shown = 0;
+  int sortChoice = -1;
 
   loadDonation(donations, MAX_DONATIONS);
 
-  printf("\n=== All Donations ===\n");
+  // Count loaded donations and copy to sorted array
   for (int i = 0; i < MAX_DONATIONS; i++) {
     if (isLoadedDonation(&donations[i])) {
-      shown++;
-      printDonationEntry(&donations[i], shown);
+      sorted[totalLoaded] = donations[i];
+      totalLoaded++;
     }
   }
 
-  if (shown == 0) {
+  if (totalLoaded == 0) {
+    printf("\n=== All Donations ===\n");
     printf("No donations found.\n");
+  } else {
+    sortChoice = selectDonationSortMenu();
+
+    if (sortChoice == 0) {
+      // Sort by date (newest first) - already in this order from loadDonation
+      qsort(sorted, (size_t)totalLoaded, sizeof(Donation),
+            compareDonationDateDesc);
+      printf("\n=== All Donations (Sorted by Date - Newest First) ===\n");
+    } else if (sortChoice == 1) {
+      // Sort by food type (A-Z)
+      qsort(sorted, (size_t)totalLoaded, sizeof(Donation),
+            compareDonationFoodTypeAsc);
+      printf("\n=== All Donations (Sorted by Food Type - A-Z) ===\n");
+    } else if (sortChoice == 2) {
+      // Sort by donor name (A-Z)
+      qsort(sorted, (size_t)totalLoaded, sizeof(Donation),
+            compareDonationDonorNameAsc);
+      printf("\n=== All Donations (Sorted by Donor Name - A-Z) ===\n");
+    } else {
+      printf("\n=== All Donations ===\n");
+      printf("Invalid sort selection.\n");
+    }
+
+    if (sortChoice >= 0 && sortChoice <= 2) {
+      for (int i = 0; i < totalLoaded; i++) {
+        shown++;
+        printDonationEntry(&sorted[i], shown);
+      }
+    }
   }
 }
 
@@ -372,6 +410,34 @@ static int compareDonationDateDesc(const void *left, const void *right) {
   }
 
   return cmp;
+}
+
+/**
+ * @brief Compares two donations by food type in ascending alphabetical order.
+ * @param left Pointer to the left Donation element.
+ * @param right Pointer to the right Donation element.
+ * @return Negative if left should come before right, positive if after, 0 if
+ * equal.
+ */
+static int compareDonationFoodTypeAsc(const void *left, const void *right) {
+  const Donation *a = (const Donation *)left;
+  const Donation *b = (const Donation *)right;
+
+  return strcmp(a->foodType, b->foodType);
+}
+
+/**
+ * @brief Compares two donations by donor name in ascending alphabetical order.
+ * @param left Pointer to the left Donation element.
+ * @param right Pointer to the right Donation element.
+ * @return Negative if left should come before right, positive if after, 0 if
+ * equal.
+ */
+static int compareDonationDonorNameAsc(const void *left, const void *right) {
+  const Donation *a = (const Donation *)left;
+  const Donation *b = (const Donation *)right;
+
+  return strcmp(a->donor.user, b->donor.user);
 }
 
 /**

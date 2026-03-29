@@ -327,3 +327,39 @@ int userMenu(User *currentUser) {
 
   return status;
 }
+
+/**
+ * @brief Displays donation sort options menu and returns the selected sort
+ * type.
+ * @return Sort option: 0 = Date (newest first), 1 = Food Type (A-Z), 2 = Donor
+ * Name (A-Z), -1 on invalid input.
+ */
+int selectDonationSortMenu(void) {
+  int choice = 0;
+  char buf[16];
+  int status = 0;
+  int result = -1;
+
+  printf("\nSort donations by:\n");
+  printf("[1] Date (Newest First)\n");
+  printf("[2] Food Type (A-Z)\n");
+  printf("[3] Donor Name (A-Z)\n");
+  printf("Choice: ");
+
+  status = readLine(buf, sizeof(buf));
+  if (status == 0 && sscanf(buf, "%d", &choice) == 1) {
+    if (choice >= 1 && choice <= 3) {
+      result = choice - 1; // Convert to 0-based index
+    } else {
+      status = -1;
+    }
+  } else {
+    status = -1;
+  }
+
+  if (status == 0) {
+    status = result;
+  }
+
+  return status;
+}
