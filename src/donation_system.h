@@ -36,6 +36,12 @@ typedef struct {
   int quantity;
 } Donation;
 
+typedef struct {
+  User requester; // the username of the user making the request
+  StringLong requestLocation; //location of the request
+  Date requestDate; //date of the request
+} Request;
+
 // Helper function to get zone name from enum
 const char *getZoneName(int zone);
 
@@ -49,5 +55,8 @@ void viewAllDonationsList(void);
 double computeDonationWasteReduction(Donation donation);
 double computeTotalWasteReduction(Donation list[], int count);
 void computeMonthlyStats(Donation list[], int count, int year, int month);
+int getZoneLocation(Donation *reqlocation);
+int zoneMatch(enum Zone donationZone, enum Zone recipientZone);
+void matchingZoneLocation(Donation donations[], int donationCount, Request request);
 
 #endif
