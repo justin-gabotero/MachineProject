@@ -3,7 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_TEST_USERS 10
+#define TEST_USER_FILE "user.txt"
+#define TEST_USER_BACKUP "user.txt.bak_test"
 
 typedef struct {
   const char *name;
@@ -12,7 +13,23 @@ typedef struct {
   int passed;
 } TestResult;
 
-static void setResult(TestResult *result, const char *name, const char *expected, const char *actual, int passed) {
+static int fileExists(const char *path) {
+  FILE *file = NULL;
+  int exists = 0;
+
+  if (path != NULL) {
+    file = fopen(path, "r");
+    if (file != NULL) {
+      exists = 1;
+      fclose(file);
+    }
+  }
+
+  return exists;
+}
+
+static void setResult(TestResult *result, const char *name,
+                      const char *expected, const char *actual, int passed) {
   if (result != NULL) {
     result->name = name;
     snprintf(result->expected, sizeof(result->expected), "%s", expected);
@@ -21,143 +38,199 @@ static void setResult(TestResult *result, const char *name, const char *expected
   }
 }
 
-static User makeValidUser(const char *username, const char *password) {
-  User u;
-  memset(&u, 0, sizeof(u));
-  strcpy(u.user, username);
-  strcpy(u.password, password);
-  return u;
+static User makeValidUser(const char *username, const char *password,
+                          Role role) {
+  User user;
+
+  memset(&user, 0, sizeof(user));
+  strcpy(user.user, username);
+  strcpy(user.password, password);
+  user.creationDate.year = 2026;
+  user.creationDate.month = 3;
+  user.creationDate.day = 30;
+  user.role = role;
+
+  return user;
 }
 
+static User *loginAs(const char *username, const char *password) {
+  String userBuf;
+  StringLong passBuf;
+  User *logged = NULL;
+
+  strcpy(userBuf, username);
+  strcpy(passBuf, password);
+  logged = loginUser(userBuf, passBuf);
+
+  return logged;
+}
+
+static int resetPasswordAs(User *user, const char *newPassword) {
+  StringLong passBuf;
+  int status = -1;
+
+  strcpy(passBuf, newPassword);
+  status = resetUserPassword(user, passBuf);
+
+  return status;
+}
+
+static void resetTestUserFile(void) { remove(TEST_USER_FILE); }
+
 static void testRegisterUserSuccess(TestResult *result) {
-  User users[MAX_TEST_USERS];
-  int count = 0;
-  int status = 0;
+  User user = makeValidUser("newuser", "pass123", SUPPLIER);
+  User *logged = NULL;
+  int status = -1;
+  int passed = 0;
   char actual[64];
 
-  status = registerUser(users, &count, "newuser", "pass123");
+  resetTestUserFile();
+  status = registerUser(&user);
+  logged = loginAs("newuser", "pass123");
+  passed = status == 0 && logged != NULL;
 
-  snprintf(actual, sizeof(actual), "status=%d count=%d", status, count);
-  setResult(result, "registerUser: valid new user", "status=0 count=1", actual, status == 0 && count == 1);
+  snprintf(actual, sizeof(actual), "status=%d login=%s", status,
+           logged != NULL ? "found" : "NULL");
+  setResult(result, "registerUser: valid new user", "status=0 login=found",
+            actual, passed);
 }
 
 static void testRegisterUserDuplicate(TestResult *result) {
-  User users[MAX_TEST_USERS];
-  int count = 1;
-  int status = 0;
+  User user = makeValidUser("existing", "pass", RECEIVER);
+  int status = -1;
+  int passed = 0;
   char actual[64];
 
-  users[0] = makeValidUser("existing", "pass");
-
-  status = registerUser(users, &count, "existing", "pass");
-
-  snprintf(actual, sizeof(actual), "status=%d count=%d", status, count);
-  setResult(result, "registerUser: duplicate username", "status=-1 count=1", actual, status == -1 && count == 1);
-}
-
-static void testRegisterUserEmpty(TestResult *result) {
-  User users[MAX_TEST_USERS];
-  int count = 0;
-  int status = 0;
-  char actual[64];
-
-  status = registerUser(users, &count, "", "");
+  resetTestUserFile();
+  registerUser(&user);
+  status = registerUser(&user);
+  passed = status == -1;
 
   snprintf(actual, sizeof(actual), "%d", status);
-  setResult(result, "registerUser: empty input", "-1", actual, status == -1);
+  setResult(result, "registerUser: duplicate username", "-1", actual, passed);
 }
 
-
-static void testLoginUserSuccess(TestResult *result) {
-  User users[2];
-  int count = 1;
-  User *found = NULL;
+static void testRegisterUserNullInput(TestResult *result) {
+  int status = -1;
+  int passed = 0;
   char actual[64];
 
-  users[0] = makeValidUser("user1", "pass");
+  status = registerUser(NULL);
+  passed = status == -1;
 
-  found = loginUser(users, count, "user1", "pass");
+  snprintf(actual, sizeof(actual), "%d", status);
+  setResult(result, "registerUser: null input", "-1", actual, passed);
+}
 
-  snprintf(actual, sizeof(actual), "%s", found ? "found" : "NULL");
-  setResult(result, "loginUser: correct credentials", "found", actual, found != NULL);
+static void testLoginUserSuccess(TestResult *result) {
+  User user = makeValidUser("login_ok", "secret", SUPPLIER);
+  User *found = NULL;
+  int passed = 0;
+  char actual[64];
+
+  resetTestUserFile();
+  registerUser(&user);
+  found = loginAs("login_ok", "secret");
+  passed = found != NULL;
+
+  snprintf(actual, sizeof(actual), "%s", found != NULL ? "found" : "NULL");
+  setResult(result, "loginUser: correct credentials", "found", actual, passed);
 }
 
 static void testLoginUserWrongPassword(TestResult *result) {
-  User users[2];
-  int count = 1;
+  User user = makeValidUser("login_wrong", "secret", RECEIVER);
   User *found = NULL;
+  int passed = 0;
   char actual[64];
 
-  users[0] = makeValidUser("user1", "pass");
+  resetTestUserFile();
+  registerUser(&user);
+  found = loginAs("login_wrong", "badpass");
+  passed = found == NULL;
 
-  found = loginUser(users, count, "user1", "wrong");
-
-  snprintf(actual, sizeof(actual), "%s", found ? "found" : "NULL");
-  setResult(result, "loginUser: wrong password", "NULL", actual, found == NULL);
+  snprintf(actual, sizeof(actual), "%s", found != NULL ? "found" : "NULL");
+  setResult(result, "loginUser: wrong password", "NULL", actual, passed);
 }
 
 static void testLoginUserNonexistent(TestResult *result) {
-  User users[2];
-  int count = 1;
   User *found = NULL;
+  int passed = 0;
   char actual[64];
 
-  users[0] = makeValidUser("user1", "pass");
+  resetTestUserFile();
+  found = loginAs("ghost", "pass");
+  passed = found == NULL;
 
-  found = loginUser(users, count, "ghost", "pass");
-
-  snprintf(actual, sizeof(actual), "%s", found ? "found" : "NULL");
-  setResult(result, "loginUser: nonexistent user", "NULL", actual, found == NULL);
+  snprintf(actual, sizeof(actual), "%s", found != NULL ? "found" : "NULL");
+  setResult(result, "loginUser: nonexistent user", "NULL", actual, passed);
 }
 
-static void testGetUserByUsernameFound(TestResult *result) {
-  User users[2];
-  int count = 1;
-  User *found = NULL;
+static void testResetPasswordSuccess(TestResult *result) {
+  User user = makeValidUser("resetme", "oldpass", SUPPLIER);
+  User target;
+  User *logged = NULL;
+  int status = -1;
+  int passed = 0;
   char actual[64];
 
-  users[0] = makeValidUser("alpha", "123");
+  resetTestUserFile();
+  registerUser(&user);
 
-  found = getUserByUsername(users, count, "alpha");
+  memset(&target, 0, sizeof(target));
+  strcpy(target.user, "resetme");
 
-  snprintf(actual, sizeof(actual), "%s", found ? "found" : "NULL");
-  setResult(result, "getUserByUsername: found", "found", actual, found != NULL);
+  status = resetPasswordAs(&target, "newpass");
+  logged = loginAs("resetme", "newpass");
+  passed = status == 0 && logged != NULL;
+
+  snprintf(actual, sizeof(actual), "status=%d login=%s", status,
+           logged != NULL ? "found" : "NULL");
+  setResult(result, "resetUserPassword: valid update", "status=0 login=found",
+            actual, passed);
 }
 
-static void testGetUserByUsernameNotFound(TestResult *result) {
-  User users[2];
-  int count = 1;
-  User *found = NULL;
+static void testEditUserEmptyInput(TestResult *result) {
+  User current = makeValidUser("edituser", "oldpass", RECEIVER);
+  User in = makeValidUser("", "", RECEIVER);
+  int status = -1;
+  int passed = 0;
   char actual[64];
 
-  users[0] = makeValidUser("alpha", "123");
+  status = editUser(&current, &in);
+  passed = status == -1;
 
-  found = getUserByUsername(users, count, "beta");
-
-  snprintf(actual, sizeof(actual), "%s", found ? "found" : "NULL");
-  setResult(result, "getUserByUsername: not found", "NULL", actual, found == NULL);
+  snprintf(actual, sizeof(actual), "%d", status);
+  setResult(result, "editUser: empty input", "-1", actual, passed);
 }
 
-static void testGetUserByUsernameEmpty(TestResult *result) {
-  User users[2];
-  int count = 0;
-  User *found = NULL;
+static void testEditUserDuplicateUsername(TestResult *result) {
+  User existing = makeValidUser("target_user", "pass1", SUPPLIER);
+  User current = makeValidUser("current_user", "pass2", RECEIVER);
+  User in = makeValidUser("target_user", "newpass", RECEIVER);
+  int status = -1;
+  int passed = 0;
   char actual[64];
 
-  found = getUserByUsername(users, count, "any");
+  resetTestUserFile();
+  registerUser(&existing);
+  registerUser(&current);
 
-  snprintf(actual, sizeof(actual), "%s", found ? "found" : "NULL");
-  setResult(result, "getUserByUsername: empty list", "NULL", actual, found == NULL);
+  status = editUser(&current, &in);
+  passed = status == -2;
+
+  snprintf(actual, sizeof(actual), "%d", status);
+  setResult(result, "editUser: duplicate username", "-2", actual, passed);
 }
-
 
 static void printResults(TestResult results[], int count) {
   int passedCount = 0;
+
   printf("\n===============================================================\n");
   printf("User System Test Results\n");
   printf("===============================================================\n");
   printf("%-3s | %-46s | %-16s | %-16s\n", "#", "Test", "Expected", "Actual");
-  printf("-------------------------------------------------------------------------------\n");
+  printf("----------------------------------------------------------------"
+         "---------------\n");
 
   for (int i = 0; i < count; i++) {
     const char *statusTag = results[i].passed ? "PASS" : "FAIL";
@@ -180,22 +253,48 @@ int main(void) {
   TestResult results[9];
   int count = 0;
   int failedCount = 0;
+  int hadOriginal = 0;
+  int movedOriginal = 0;
+  int restored = 0;
+
+  hadOriginal = fileExists(TEST_USER_FILE);
+  if (hadOriginal == 1) {
+    if (rename(TEST_USER_FILE, TEST_USER_BACKUP) == 0) {
+      movedOriginal = 1;
+    }
+  }
 
   testRegisterUserSuccess(&results[count++]);
   testRegisterUserDuplicate(&results[count++]);
-  testRegisterUserEmpty(&results[count++]);
+  testRegisterUserNullInput(&results[count++]);
   testLoginUserSuccess(&results[count++]);
   testLoginUserWrongPassword(&results[count++]);
   testLoginUserNonexistent(&results[count++]);
-  testGetUserByUsernameFound(&results[count++]);
-  testGetUserByUsernameNotFound(&results[count++]);
-  testGetUserByUsernameEmpty(&results[count++]);
+  testResetPasswordSuccess(&results[count++]);
+  testEditUserEmptyInput(&results[count++]);
+  testEditUserDuplicateUsername(&results[count++]);
+
   printResults(results, count);
 
   for (int i = 0; i < count; i++) {
     if (results[i].passed == 0) {
       failedCount++;
     }
+  }
+
+  remove(TEST_USER_FILE);
+
+  if (movedOriginal == 1) {
+    if (rename(TEST_USER_BACKUP, TEST_USER_FILE) == 0) {
+      restored = 1;
+    }
+  } else {
+    restored = 1;
+  }
+
+  if (restored == 0) {
+    printf("Warning: could not restore original user.txt\n");
+    failedCount++;
   }
 
   return failedCount;
