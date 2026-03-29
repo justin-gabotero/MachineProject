@@ -7,6 +7,7 @@
 #include <time.h>
 
 #define MAX_DONATIONS 512
+#define MAX_REQUESTS 512
 
 /**
  * @brief Retrieves the human-readable name of a zone based on its enum value.
@@ -194,6 +195,7 @@ void viewOwnDonations(const User *currentUser) {
 int createDonationFlow(const User *currentUser) {
   Donation input;
   Donation validated;
+  Request requests[MAX_REQUESTS];
   int status = -1;
 
   if (currentUser != NULL && currentUser->role == SUPPLIER) {
@@ -215,6 +217,128 @@ int createDonationFlow(const User *currentUser) {
     if (status == 0) {
       writeDonation(validated);
       printf("Donation created successfully.\n");
+
+      loadRequest(requests, MAX_REQUESTS);
+      printf("\n=== Matching Receivers For This Donation ===\n");
+      for (int i = 0; i < MAX_REQUESTS; i++) {
+        if (strlen(requests[i].requester.user) > 0 &&
+            zoneMatch(validated.zone, requests[i].zone)) {
+          printf("Requester: %s | Zone: %s\n", requests[i].requester.user,
+                 getZoneName(requests[i].zone));
+        }
+      }
+    }
+  }
+
+  return status;
+}
+
+/**
+ * @brief Prompts the user for request details and creates a request record.
+ * @param requester The user creating the request.
+ * @param[out] outRequest Pointer to the request output.
+ * @return 0 on success, -1 on invalid input.
+ */
+int addRequestPrompt(User requester, Request *outRequest) {
+  Request temp;
+  int selectedZone = -1;
+  int status = 0;
+
+  if (outRequest == NULL) {
+    status = -1;
+  }
+
+  if (status == 0) {
+    temp.requester = requester;
+    if (getCurrentDate(&temp.requestDate) != 0) {
+      status = -1;
+    }
+  }
+
+  if (status == 0) {
+    selectedZone = selectZoneMenu();
+    if (selectedZone >= 0 && selectedZone < NUM_ZONES) {
+      temp.zone = (enum Zone)selectedZone;
+    } else {
+      status = -1;
+    }
+  }
+
+  if (status == 0) {
+    *outRequest = temp;
+  }
+
+  if (status != 0) {
+    status = -1;
+  }
+
+  return status;
+}
+
+/**
+ * @brief Validates and creates a request record from input.
+ * @param in Input request data.
+ * @param[out] out Output request data.
+ * @return 0 on success, -1 on invalid fields or null output pointer.
+ */
+int createRequest(Request in, Request *out) {
+  int status = 0;
+
+  if (out == NULL) {
+    status = -1;
+  }
+
+  if (status == 0 &&
+      (strlen(in.requester.user) == 0 || in.zone < 0 || in.zone >= NUM_ZONES)) {
+    status = -1;
+  }
+
+  if (status == 0 &&
+      (in.requestDate.year < 1970 || in.requestDate.year > 2100 ||
+       in.requestDate.month < 1 || in.requestDate.month > 12 ||
+       in.requestDate.day < 1 || in.requestDate.day > 31)) {
+    status = -1;
+  }
+
+  if (status == 0) {
+    *out = in;
+  }
+
+  return status;
+}
+
+/**
+ * @brief Handles request creation flow for a receiver user.
+ * @param currentUser Pointer to the logged-in user.
+ * @return 0 on success, -1 on error.
+ */
+int createRequestFlow(const User *currentUser) {
+  Request input;
+  Request validated;
+  Donation donations[MAX_DONATIONS];
+  int status = -1;
+
+  if (currentUser != NULL && currentUser->role == RECEIVER) {
+    printf("\n=== Create Request ===\n");
+    status = addRequestPrompt(*currentUser, &input);
+    if (status != 0) {
+      printf("Invalid request details.\n");
+    }
+
+    if (status == 0) {
+      status = createRequest(input, &validated);
+      if (status != 0) {
+        printf("Request could not be created.\n");
+      }
+    }
+
+    if (status == 0) {
+      writeRequest(validated);
+      printf("Request created successfully.\n");
+
+      loadDonation(donations, MAX_DONATIONS);
+      printf("\n=== Matching Donations For This Request ===\n");
+      matchingZoneLocation(donations, MAX_DONATIONS, validated);
     }
   }
 
@@ -460,6 +584,23 @@ void writeDonation(Donation donation) {
 }
 
 /**
+ * @brief Appends a request record to request.txt.
+ * @param request Request record to persist.
+ */
+void writeRequest(Request request) {
+  FILE *file = fopen("request.txt", "a");
+
+  if (file != NULL) {
+    fprintf(file, "%s:%d:%d-%02d-%02d\n", request.requester.user, request.zone,
+            request.requestDate.year, request.requestDate.month,
+            request.requestDate.day);
+    fclose(file);
+  } else {
+    printf("Error: Could not open request.txt for writing.\n");
+  }
+}
+
+/**
  * @brief Loads donation records from donation.txt into an array.
  * @param[out] list Array of Donation structures that receives loaded records.
  * @param maxCount Maximum number of records to load.
@@ -549,6 +690,99 @@ void loadDonation(Donation *list, int maxCount) {
       qsort(list, (size_t)loadedCount, sizeof(Donation),
             compareDonationDateDesc);
     }
+  }
+}
+
+/**
+ * @brief Loads request records from request.txt into an array.
+ * @param[out] list Array of Request structures that receives loaded records.
+ * @param maxCount Maximum number of records to load.
+ */
+void loadRequest(Request *list, int maxCount) {
+  FILE *file = NULL;
+  char line[256];
+  int loadedCount = 0;
+
+  if (list != NULL && maxCount > 0) {
+    for (int i = 0; i < maxCount; i++) {
+      list[i].requester.user[0] = '\0';
+      list[i].requester.password[0] = '\0';
+      list[i].requester.creationDate.year = 0;
+      list[i].requester.creationDate.month = 0;
+      list[i].requester.creationDate.day = 0;
+      list[i].requester.role = (Role)-1;
+      list[i].zone = (enum Zone) - 1;
+      list[i].requestDate.year = 0;
+      list[i].requestDate.month = 0;
+      list[i].requestDate.day = 0;
+    }
+
+    file = fopen("request.txt", "r");
+    if (file != NULL) {
+      while (loadedCount < maxCount &&
+             fgets(line, sizeof(line), file) != NULL) {
+        Request parsed;
+        int zoneInt = -1;
+        int matched = 0;
+
+        parsed.requester.user[0] = '\0';
+        parsed.requester.password[0] = '\0';
+        parsed.requester.creationDate.year = 0;
+        parsed.requester.creationDate.month = 0;
+        parsed.requester.creationDate.day = 0;
+        parsed.requester.role = (Role)-1;
+        parsed.zone = (enum Zone) - 1;
+        parsed.requestDate.year = 0;
+        parsed.requestDate.month = 0;
+        parsed.requestDate.day = 0;
+
+        matched = sscanf(line, "%31[^:]:%d:%d-%d-%d", parsed.requester.user,
+                         &zoneInt, &parsed.requestDate.year,
+                         &parsed.requestDate.month, &parsed.requestDate.day);
+
+        if (matched == 5 && zoneInt >= 0 && zoneInt < NUM_ZONES &&
+            parsed.requestDate.year >= 1970 &&
+            parsed.requestDate.year <= 2100 && parsed.requestDate.month >= 1 &&
+            parsed.requestDate.month <= 12 && parsed.requestDate.day >= 1 &&
+            parsed.requestDate.day <= 31) {
+          parsed.zone = (enum Zone)zoneInt;
+          list[loadedCount] = parsed;
+          loadedCount++;
+        }
+      }
+
+      fclose(file);
+    }
+  }
+}
+
+/**
+ * @brief Displays receiver requests and suggested matching donations.
+ * @param currentUser Pointer to the currently logged-in user.
+ */
+void viewOwnRequests(const User *currentUser) {
+  Request requests[MAX_REQUESTS];
+  Donation donations[MAX_DONATIONS];
+  int shown = 0;
+
+  loadRequest(requests, MAX_REQUESTS);
+  loadDonation(donations, MAX_DONATIONS);
+
+  printf("\n=== Your Requests ===\n");
+  for (int i = 0; i < MAX_REQUESTS; i++) {
+    if (currentUser != NULL && strlen(requests[i].requester.user) > 0 &&
+        strcmp(requests[i].requester.user, currentUser->user) == 0) {
+      shown++;
+      printf("%d. Requested On: ", shown);
+      printDate(&requests[i].requestDate);
+      printf("\n");
+      printf("   Zone: %s\n", getZoneName(requests[i].zone));
+      matchingZoneLocation(donations, MAX_DONATIONS, requests[i]);
+    }
+  }
+
+  if (shown == 0) {
+    printf("No requests found for your account.\n");
   }
 }
 /**
@@ -641,10 +875,20 @@ int getZoneLocation(const char *location) {
  * donation and recipient zones
  * @param donationZone the zone enum value of the donation location
  * @param recipientZone the zone enum value of the recipient location
+ * @return 1 if the zones are considered a match (distance <= 2), 0 otherwise
  */
 int zoneMatch(enum Zone donationZone, enum Zone recipientZone) {
-  int distance = ZONE_DISTANCE[donationZone][recipientZone];
-  return distance <= 2;
+  int isMatch = 0;
+
+  if (donationZone >= 0 && donationZone < NUM_ZONES && recipientZone >= 0 &&
+      recipientZone < NUM_ZONES) {
+    int distance = ZONE_DISTANCE[donationZone][recipientZone];
+    if (distance <= 2) {
+      isMatch = 1;
+    }
+  }
+
+  return isMatch;
 }
 /**
  * @brief matches the zone location of the donation and request and prints the
@@ -660,9 +904,10 @@ void matchingZoneLocation(Donation donations[], int donationCount,
   enum Zone requestZone = request.zone;
   int found = 0;
 
-  printf("Matching Donations for %s", request.requester.user);
+  printf("Matching donations for %s:\n", request.requester.user);
   for (int i = 0; i < donationCount; i++) {
-    if (zoneMatch(donations[i].zone, requestZone) && found == 0) {
+    if (isLoadedDonation(&donations[i]) &&
+        zoneMatch(donations[i].zone, requestZone)) {
       printDonationEntry(&donations[i], i + 1);
       found = 1;
     }

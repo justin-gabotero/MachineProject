@@ -299,16 +299,14 @@ int userMenu(User *currentUser) {
       if (currentUser->role == SUPPLIER) {
         viewOwnDonations(currentUser);
       } else {
-        printf("\n=== Your Requests ===\n");
-        printf("Request viewing is not yet implemented.\n");
+        viewOwnRequests(currentUser);
       }
       break;
     case 3:
       if (currentUser->role == SUPPLIER) {
         createDonationFlow(currentUser);
       } else {
-        printf("\n=== Create Request ===\n");
-        printf("Request creation is not yet implemented.\n");
+        createRequestFlow(currentUser);
       }
       break;
     case 4:
