@@ -1,10 +1,9 @@
 package main
 
 import (
-  "fmt"
-  "FoodConnect/internal/app"
+	"fmt"
 )
 
 func main() {
-  fmt.Println(app.Message())
+	fmt.Println("Hello, World!")
 }

@@ -12,6 +12,10 @@ type SQLiteStore struct {
 	db *sql.DB
 }
 
+// ----------------------------------------------------------------------------
+// NewSQLiteStore
+// ----------------------------------------------------------------------------
+
 // Initiliaze new `SQLiteStore` instance, create new db file if it doesnt exist
 // then run migrations to set up the necessary tables.
 func NewSQLiteStore(dataDir string) (*SQLiteStore, error) {
@@ -65,3 +69,7 @@ func (s *SQLiteStore) migrate() error {
 
 	return nil
 }
+
+// ----------------------------------------------------------------------------
+// User operations
+// ----------------------------------------------------------------------------
