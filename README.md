@@ -42,7 +42,8 @@ go run ./cmd/app
 ## Current Status
 
 - Core backend modules are being implemented in Go.
-- SQLite is used for local persistence.
+- SQLite is used for now to ship the backend MVP quickly.
+- PostgreSQL is the planned production migration target as scale and availability requirements grow.
 - Test coverage is being expanded as modules are completed.
 - Frontend implementation is planned after backend milestones are complete.
 
