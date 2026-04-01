@@ -19,6 +19,7 @@ Use this file as a working task board for the project. Move to GitHub Projects o
 | --- | --- | --- | --- | --- | --- | --- |
 | T-001 | <task description> | P1 | <name> | <YYYY-MM-DD> | todo | <details> |
 | T-002 | <task description> | P2 | <name> | <YYYY-MM-DD> | todo | <details> |
+| T-006 | Harden data directory handling for production: resolve symlinks, reduce TOCTOU risk, tighten directory permissions, and define env override policy | P1 | unassigned | 2026-04-01 | todo | Follow-up from config and storage safety review |
 
 ## In Progress
 
