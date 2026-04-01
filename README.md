@@ -1,20 +1,32 @@
-# Repository Template Starter
+# FoodConnect
 
-This is for my personal projects to save time on setup. It serves as a practice ground for my design diciplines and consistency.
+FoodConnect is a web application used to connect food donors with food banks and people in need.
 
-## Usage
+## Planned Features
+- Web interface for donors to list their available food items and for recipients to browse and request food.
+- Automatic matching of donors and recipients based on location and food preferences.
+- Optional notifications for donors and recipients about new matches and updates on their requests.
 
-1. Use this repo as a template when creating a new repository on GitHub. Or use `gh repo create <name> --template=justin-gabotero/envy-template` using the [GitHub CLI](https://cli.github.com/).
-2. Run `bash scripts/bootstrap.sh` and select which language to use.
-3. Scaffolding locations:
-   - **C/C++**: Starter files generated under `src/` (CMakeLists.txt, src/, include/, tests/).
-   - **Go**: Starter files generated at repo root (go.mod, cmd/, internal/, tests/) following Go conventions.
-4. Edit the template files as needed.
-5. Commit as your initial project baseline.
+## Migration from C to GoLang
 
-> [!IMPORTANT]
-> Ensure that the templates are updated for the language and tools used.
+The original codebase of FoodConnect was written in C for the purpose of a university project. I decided to migrate the backend to GoLang to improve scalability and ease of maintenance.
 
-## To Be Added
-- [ ] GitHub Actions CI templates for each language.
-- [ ] Minecraft modding template (Fabric or NeoForge).
+## Requirements
+- Go `1.24` or higher
+- A web server (`nginx` or `apache`) for deployment (optional)
+- C compiler (for `go-sqlite3`)
+
+## Setup
+
+```sh
+# Clone the repository
+git clone https://github.com/justin-gabotero/FoodConnect
+cd FoodConnect
+# Install dependencies
+go mod tidy
+# Run the application
+go run main.go
+```
+
+## Contributing
+Contributions are welcome! Please fork the repository and submit a pull request with your changes.
