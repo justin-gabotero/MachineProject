@@ -2,6 +2,15 @@
 
 Thanks for contributing.
 
+## Project Context
+
+FoodConnect is a mixed-language repository:
+
+- `c/` contains the original university-project implementation. This code is preserved for reference and learning purposes but is not actively developed.
+- `internal/` and `cmd/` contain the actively developed Go backend.
+
+When contributing, preserve behavior where appropriate and keep changes scoped to the subsystem you are updating.
+
 ## Workflow
 
 1. Create a branch from `main`.
@@ -30,15 +39,15 @@ Before opening a pull request:
 
 - [ ] Code follows `docs/STYLE_GUIDE.md`
 - [ ] New or changed public functions are documented
-- [ ] Build passes locally
-- [ ] Tests pass locally (if tests exist)
+- [ ] Build passes locally and on CI
+- [ ] Tests pass locally
 - [ ] No new warnings introduced
 - [ ] Changelog updated if needed
-- [ ] Status-code behavior is documented and consistent (`0` success, `-1` failure, additional negative values only for clearly documented special cases)
-- [ ] Output parameters are only written on success paths
-- [ ] Local variables are declared at the top of C functions
 
-Note: `scripts/bootstrap.sh` can generate baseline smoke tests. Treat those as a starting point and add project-specific tests for behavior changes.
+Recommended local checks:
+
+- Go changes: `go test ./...`
+- C changes: run tests under `c/test/` with the provided Makefile/tooling
 
 For `fix/*` branches, structure the pull request description in this order:
 
@@ -49,9 +58,3 @@ For `fix/*` branches, structure the pull request description in this order:
 5. Changes
 
 Use `.github/PULL_REQUEST_TEMPLATE.md` as the default format source.
-
-## Merge Strategy
-
-- Default to **Squash and merge** so each pull request lands as one clean commit.
-- GitHub preserves the individual commits in the pull request for reference, but the main branch history remains clean.
-- Use a non-squash merge only when the commit series is intentionally structured and each commit is independently meaningful.
