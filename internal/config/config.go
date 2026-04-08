@@ -5,15 +5,32 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
+type SMTPConfig struct {
+	Host     string
+	Port     int
+	Username string
+	Password string
+	FromAddr string
+}
+
 type Config struct {
-	DataDir string
+	DataDir                   string
+	SessionLifetime           time.Duration
+	EmailVerificationRequired bool
+	PasswordResetTokenExpiry  time.Duration
+	SMTP                      *SMTPConfig
 }
 
 func LoadConfig() (*Config, error) {
 	cfg := &Config{
-		DataDir: os.Getenv("FOODCONNECT_DATA_DIR"),
+		DataDir:                   os.Getenv("FOODCONNECT_DATA_DIR"),
+		SessionLifetime:           7 * 24 * time.Hour, // 7 days
+		EmailVerificationRequired: true,
+		PasswordResetTokenExpiry:  1 * time.Hour,
+		SMTP:                      nil,
 	}
 
 	allowedBase := filepath.Join(string(os.PathSeparator), "var", "lib", "foodconnect")
