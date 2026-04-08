@@ -18,7 +18,7 @@ type SQLiteStore struct {
 // NewSQLiteStore
 // ----------------------------------------------------------------------------
 
-// Initiliaze new `SQLiteStore` instance, create new db file if it doesnt exist
+// NewSQLiteStore initializes a new `SQLiteStore` instance, create new db file if it doesnt exist
 // then run migrations to set up the necessary tables.
 func NewSQLiteStore(dataDir string) (*SQLiteStore, error) {
 	// check if dataDir exists, if not create it
@@ -43,7 +43,7 @@ func NewSQLiteStore(dataDir string) (*SQLiteStore, error) {
 	return store, nil
 }
 
-// create necessary tables if they dont exist
+// migrate creates necessary tables if they dont exist
 func (s *SQLiteStore) migrate() error {
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS users (

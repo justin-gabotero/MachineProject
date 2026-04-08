@@ -6,7 +6,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Generates a bcrypt hash of the password with a random salt.
+// HashPassword generates a bcrypt hash of the password with a random salt.
 func HashPassword(password string) (hash string, err error) {
 	if password == "" {
 		return "", errors.New("invalid password length")
@@ -20,13 +20,13 @@ func HashPassword(password string) (hash string, err error) {
 	return string(hashedPassword), nil
 }
 
-// Verifies a plaintext password against a bcrypt hash. Returns true if they match.
+// VerifyPassword verifies a plaintext password against a bcrypt hash. Returns true if they match.
 func VerifyPassword(hash, plaintext string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(plaintext))
 	return err == nil
 }
 
-// Checks password strength and returns an error if it doesn't meet criteria.
+// VerifyPasswordStrength checks password strength and returns an error if it doesn't meet criteria.
 func VerifyPasswordStrength(password string) error {
 	if len(password) < 8 {
 		return errors.New("password must be at least 8 characters long")
